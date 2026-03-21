@@ -1,0 +1,19 @@
+package: vector_maps
+version: '1.0.0'
+author: 'KLXM'
+supportpage: 'https://github.com/KLXM/vector_maps'
+requires:
+  php: '>=8.1'
+  redaxo: '>=5.14'
+
+page:
+  title: 'translate:vector_maps_title'
+  perm: 'vector_maps[]'
+  icon: 'rex-icon rex-icon-vector-maps'
+  subpages:
+    demo:
+      title: 'translate:vector_maps_demo'
+    themes:
+      title: 'translate:vector_maps_themes'
+    settings:
+      title: 'translate:vector_maps_settings'

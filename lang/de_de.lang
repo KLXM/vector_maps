@@ -1,0 +1,20 @@
+vector_maps_title = Vector Maps
+vector_maps_demo = Demo & Test
+vector_maps_themes = Themes
+vector_maps_demo_info = Auf dieser Seite kann der Vector Maps Picker und das native 3D-Rendering getestet werden.
+vector_maps_settings = Einstellungen
+vector_maps_cache_cleared = Der Vector Maps Cache wurde erfolgreich geleert.
+vector_maps_cache_clear_error = Fehler beim Leeren des Caches.
+vector_maps_settings_info = Hier können Einstellungen für das Vector Maps AddOn vorgenommen werden. Da die Map-Tiles lokal zwischengespeichert werden, um DSGVO-konform zu arbeiten, kann der Cache hier manuell geleert werden, falls erforderlich.
+vector_maps_clear_cache = Tile-Cache leeren
+
+vector_maps_settings_frontend_heading = Frontend-Einbindung
+vector_maps_load_frontend_label = Assets automatisch im Frontend laden
+vector_maps_load_frontend_notice = Wenn aktiv, werden MapLibre GL JS und die Vector-Maps-Styles automatisch in jede Frontend-Seite eingebunden. Deaktivieren, wenn die Assets manuell im Template eingebunden werden sollen.
+vector_maps_settings_saved = Einstellungen gespeichert.
+vector_maps_settings_save = Einstellungen speichern
+
+vector_maps_picker_button = Map Picker öffnen
+vector_maps_search_placeholder = Adresse suchen...
+vector_maps_close = Schließen
+vector_maps_confirm = Übernehmen
