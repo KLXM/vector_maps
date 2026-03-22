@@ -2,6 +2,8 @@
 
 Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, vollständig selbst gehostet.
 
+![Vector Maps Screenshot](https://raw.githubusercontent.com/KLXM/vector_maps/assets/screen.png)
+
 ---
 
 ## Features
@@ -194,6 +196,8 @@ Routen zwischen zwei Punkten berechnen – sowohl mit Koordinaten als auch mit A
 | `route-to` | – | `route-to="51.45,6.76"` | Zielpunkt: `lat,lng` oder Adresse als Text |
 | `route-mode` | `driving` | `route-mode="walking"` | Routing-Profil: `driving`, `walking`, `cycling` |
 | `route-panel` | `false` | `route-panel` | Interaktives Von/Nach-Panel auf der Karte einblenden |
+| `route-to-locked` | `false` | `route-to-locked` | Zieladresse im Panel fixieren – nicht editierbar, kein Autocomplete |
+| `route-no-steps` | `false` | `route-no-steps` | Abbiegehinweise (Turn-by-Turn) im Panel ausblenden |
 
 ### Interaktives Routenpanel (`route-panel`)
 
@@ -208,6 +212,23 @@ Das Routenpanel wird als schwebende Seitenleiste auf der Karte angezeigt und erm
 ```
 
 > Das Routenpanel zeigt SVG-Icons für die drei Modi Auto, Zu Fuß und Fahrrad. Es überschreibt `route-from`/`route-to`-Attribute nicht, sondern verwendet sie als Startwerte.
+
+### Fixiertes Ziel (`route-to-locked`)
+
+Wenn das Ziel fest vorgegeben ist (z.B. ein Firmenstandort), kann das Zielfeld eingesperrt werden. Der Nutzer gibt nur seine Startadresse ein — das Ziel ist nicht editierbar und hat kein Autocomplete:
+
+```html
+<vectormap lat="51.4298" lng="6.7742" zoom="12"
+    height="450px"
+    interactive
+    route-panel
+    route-to="Duisburg Hauptbahnhof"
+    route-to-locked
+    route-no-steps>
+</vectormap>
+```
+
+> Mit `route-no-steps` wird nur der berechnete Weg auf der Karte angezeigt — ohne Schritt-für-Schritt-Abbiegehinweise darunter. Ideal für Anfahrtskarten auf Kontaktseiten.
 
 ---
 

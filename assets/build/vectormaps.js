@@ -581,6 +581,8 @@ class VectorMapPicker {
      route-to="lat,lng"         Routing-Zielpunkt  (Koordinaten oder Adresse)
      route-mode="driving"       driving | walking | cycling
      route-panel               Interaktives Route-Panel mit Adresssuche einblenden
+     route-to-locked           Zieladresse im Route-Panel fixieren (nicht änderbar, kein Autocomplete)
+     route-no-steps            Abbiegehinweise im Route-Panel ausblenden
      nearby="amenity=charging_station" Overpass-Filter für POI-Umgebungssuche
      nearby-radius="1000"       Suchradius in Metern (Standard: 1000)
      nearby-label="Ladestn."    Label für Marker-Popups (optional, sonst OSM-Tags)
@@ -1512,9 +1514,11 @@ async function vmDrawRoute(el, map, fromStr, toStr, mode) {
 
 
 function vmAddRoutePanel(el, map) {
-    const initFrom = el.getAttribute('route-from') || '';
-    const initTo   = el.getAttribute('route-to')   || '';
-    const initMode = el.getAttribute('route-mode')  || 'driving';
+    const initFrom  = el.getAttribute('route-from') || '';
+    const initTo    = el.getAttribute('route-to')   || '';
+    const initMode  = el.getAttribute('route-mode') || 'driving';
+    const toLocked  = el.hasAttribute('route-to-locked');
+    const noSteps   = el.hasAttribute('route-no-steps');
 
     const panel = document.createElement('div');
     panel.className = 'vm-route-panel';
@@ -1533,7 +1537,8 @@ function vmAddRoutePanel(el, map) {
             <div class="vm-rp-input-wrap">
                 <input class="vm-rp-to" type="text" autocomplete="off"
                     placeholder="Zieladresse oder Koordinaten …"
-                    value="${initTo.replace(/"/g, '&quot;')}">
+                    value="${initTo.replace(/"/g, '&quot;')}"
+                    ${toLocked ? 'readonly tabindex="-1"' : ''}>
                 <div class="vm-rp-suggestions"></div>
             </div>
         </div>
@@ -1554,6 +1559,11 @@ function vmAddRoutePanel(el, map) {
     const calcBtn   = panel.querySelector('.vm-rp-calc');
     const clearBtn  = panel.querySelector('.vm-rp-clear');
     let currentMode = initMode;
+
+    // gesperrtes Ziel-Feld visuell kennzeichnen
+    if (toLocked) {
+        toInput.style.cssText += ';cursor:default;background:rgba(0,0,0,.04);color:inherit;';
+    }
 
     // Modus-Buttons
     panel.querySelectorAll('.vm-rp-mode').forEach(btn => {
@@ -1616,7 +1626,7 @@ function vmAddRoutePanel(el, map) {
     }
 
     setupSuggest(fromInput);
-    setupSuggest(toInput);
+    if (!toLocked) setupSuggest(toInput);  // kein Autocomplete wenn gesperrt
 
     // Route berechnen
     calcBtn.addEventListener('click', async () => {
@@ -1629,7 +1639,7 @@ function vmAddRoutePanel(el, map) {
         clearBtn.style.display = 'none';
         try {
             await vmDrawRoute(el, map, fromVal, toVal, currentMode);
-            vmRenderSteps(panel, el._vmRouteSteps, map);
+            if (!noSteps) vmRenderSteps(panel, el._vmRouteSteps, map);
             clearBtn.style.display = '';
         } catch (e) {
             console.warn('Route-Panel Fehler:', e);
@@ -1651,7 +1661,7 @@ function vmAddRoutePanel(el, map) {
     if (initFrom && initTo) {
         const autoCalc = async () => {
             await vmDrawRoute(el, map, initFrom, initTo, currentMode);
-            vmRenderSteps(panel, el._vmRouteSteps, map);
+            if (!noSteps) vmRenderSteps(panel, el._vmRouteSteps, map);
             clearBtn.style.display = '';
         };
         if (map.isStyleLoaded()) {
