@@ -23,6 +23,7 @@ Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, volls
 - **3D-Gebäude** – aktivierbar per Attribut
 - **Mehrsprachigkeit** – Sprachcode per `language`-Attribut, steuert Kartenbeschriftungen von OpenFreeMap
 - **Cluster** – automatische Marker-Bündelung bei vielen Punkten
+- **Satellitenbild** – ESRI World Imagery als `map-style="satellite"` oder per `show-satellite` Toggle-Button, kein API-Key
 - **maxPitch 60°** – Kamerakippung auf 60° begrenzt (verhindert extreme Perspektiven)
 
 ---
@@ -151,7 +152,8 @@ worker-src blob:;
 | `height` | `400` | `height="600px"` | CSS-Höhe des Karten-Containers |
 | `pitch` | `0` | `pitch="45"` | Kamerakippung in Grad (0–60) |
 | `bearing` | `0` | `bearing="45"` | Kartenausrichtung in Grad |
-| `map-style` | `liberty` | `map-style="bright"` | OFM-Stilname: `liberty`, `bright`, `positron` – oder Theme-Name |
+| `map-style` | `liberty` | `map-style="satellite"` | OFM-Stilname: `liberty`, `bright`, `positron`, `satellite` (ESRI World Imagery) – oder Theme-Name |
+| `show-satellite` | `false` | `show-satellite` | Toggle-Button zum Wechsel zwischen Vektor- und Satellitenbild (ESRI World Imagery, kein API-Key) |
 | `theme` | – | `theme="dark"` | Farb-Theme: `dark`, `warm`, `mono` oder eigener Theme-Name |
 | `language` | `de` | `language="en"` | Sprachcode für Kartenbeschriftungen (ISO 639-1) |
 | `markers` | – | `markers='[{"lat":51.51,"lng":-0.12}]'` | JSON-Array mit Marker-Objekten |
@@ -229,6 +231,30 @@ Wenn das Ziel fest vorgegeben ist (z.B. ein Firmenstandort), kann das Zielfeld e
 ```
 
 > Mit `route-no-steps` wird nur der berechnete Weg auf der Karte angezeigt — ohne Schritt-für-Schritt-Abbiegehinweise darunter. Ideal für Anfahrtskarten auf Kontaktseiten.
+
+---
+
+## Satellitenbild
+
+Zwei Möglichkeiten, ESRI World Imagery (kostenlos, kein API-Key) zu nutzen:
+
+```html
+<!-- Karte direkt als Satellitenbild -->
+<vectormap lat="48.858844" lng="2.294351" zoom="16" height="400px"
+    map-style="satellite">
+    <marker lat="48.858844" lng="2.294351" popup="Eiffelturm"></marker>
+</vectormap>
+
+<!-- Vektor-Karte mit Toggle-Button für Satellitenansicht -->
+<vectormap lat="52.520008" lng="13.404954" zoom="13" height="400px"
+    show-satellite>
+    <marker lat="52.520008" lng="13.404954" popup="Brandenburger Tor"></marker>
+</vectormap>
+```
+
+Der Toggle-Button erscheint unten rechts über der Karte. Marker bleiben beim Wechsel zwischen Vektor- und Satellitenansicht erhalten. GeoJSON-Layer werden nach der Rückkehr zur Vektorkarte automatisch neu geladen.
+
+> **Hinweis:** ESRI World Imagery ist frei nutzbar (Lizenz: Esri Master License Agreement). Attribution wird automatisch gesetzt. Für gewerbliche Hochlast-Szenarien empfiehlt sich ein eigener Tile-Server.
 
 ---
 
