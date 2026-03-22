@@ -1,8 +1,6 @@
 # Vector Maps – REDAXO AddOn
 
-Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, vollständig selbst gehostet.
-
-![Vector Maps Screenshot](https://raw.githubusercontent.com/KLXM/vector_maps/assets/screen.png)
+Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, vollständig selbst 
 
 ---
 
