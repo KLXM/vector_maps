@@ -622,7 +622,33 @@ const VM_SATELLITE_STYLE = {
     layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }],
 };
 
-
+/**
+ * ESRI Hybrid — Satellitenbild + Straßen/Beschriftungen als transparenter Overlay.
+ * World_Reference_Overlay enthält Straßen, Ortsnamen und Grenzen als transparentes PNG.
+ * Kein API-Key erforderlich, Attribution wird automatisch gesetzt.
+ */
+const VM_HYBRID_STYLE = {
+    version: 8,
+    sources: {
+        satellite: {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            attribution: '© Esri — Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxzoom: 19,
+        },
+        labels: {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            maxzoom: 19,
+        },
+    },
+    layers: [
+        { id: 'satellite', type: 'raster', source: 'satellite' },
+        { id: 'labels',    type: 'raster', source: 'labels' },
+    ],
+};
 
 /**
  * Eingebaute Farb-Themes — werden nach dem Style-Load per setPaintProperty angewendet.
