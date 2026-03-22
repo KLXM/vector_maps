@@ -210,6 +210,7 @@ class VectorMapPicker {
 
     proxyStyleUrl(styleName) {
         if (styleName === 'satellite') return VM_SATELLITE_STYLE;
+        if (styleName === 'hybrid')    return VM_HYBRID_STYLE;
         return this.proxyUrl('https://tiles.openfreemap.org/styles/' + styleName);
     }
 
@@ -565,7 +566,7 @@ class VectorMapPicker {
    Attribute:
      center="lat,lng"           Kartenmittelpunkt (Standard: Deutschland-Mitte)
      zoom="6"                   Zoom-Stufe
-     map-style="liberty"        Stil: liberty|bright|positron|satellite oder vollständige URL
+     map-style="liberty"        Stil: liberty|bright|positron|satellite|hybrid oder vollständige URL
      pitch="0"                  Kamerakippung (0–85°)
      bearing="0"                Kameraausrichtung
      height="400"               Höhe in px (oder "60vh", "100%" usw.)
@@ -698,6 +699,7 @@ function vmProxyUrl(url) {
 
 function vmProxyStyleUrl(nameOrUrl) {
     if (nameOrUrl === 'satellite') return VM_SATELLITE_STYLE;
+    if (nameOrUrl === 'hybrid')    return VM_HYBRID_STYLE;
     if (nameOrUrl.startsWith('http')) return vmProxyUrl(nameOrUrl);
     // Bekannte OFM-Styles direkt weiterleiten
     if (VM_OFM_STYLES.includes(nameOrUrl)) {
