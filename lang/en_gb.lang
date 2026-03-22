@@ -9,6 +9,7 @@ vector_maps_settings_saved = Settings saved.
 vector_maps_settings_save = Save settings
 
 # Frontend / JS Picker
+vector_maps_readme = README
 vector_maps_picker_button = Open Map Picker
 vector_maps_search_placeholder = Search address...
 vector_maps_close = Close

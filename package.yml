@@ -12,7 +12,7 @@ page:
   icon: 'rex-icon rex-icon-vector-maps'
   subpages:
     readme:
-      title: 'translate:readme'
+      title: 'translate:vector_maps_readme'
       subPath: README.md
     demo:
       title: 'translate:vector_maps_demo'

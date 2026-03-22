@@ -14,6 +14,7 @@ vector_maps_load_frontend_notice = Wenn aktiv, werden MapLibre GL JS und die Vec
 vector_maps_settings_saved = Einstellungen gespeichert.
 vector_maps_settings_save = Einstellungen speichern
 
+vector_maps_readme = README
 vector_maps_picker_button = Map Picker öffnen
 vector_maps_search_placeholder = Adresse suchen...
 vector_maps_close = Schließen
