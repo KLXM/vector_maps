@@ -54,6 +54,7 @@
                     <button type="button" class="btn btn-sm btn-primary vm-demo-style-btn active" data-style="liberty">Liberty</button>
                     <button type="button" class="btn btn-sm btn-default vm-demo-style-btn" data-style="bright">Bright</button>
                     <button type="button" class="btn btn-sm btn-default vm-demo-style-btn" data-style="positron">Positron</button>
+                    <button type="button" class="btn btn-sm btn-default vm-demo-style-btn" data-style="satellite" title="ESRI World Imagery &ndash; kein API-Key">&#x1F6F0; Satellit</button>
                 </div>
             </div>
             <div>
@@ -243,7 +244,8 @@
                         <tr><td><code>zoom</code></td><td><code>6</code></td><td><code>zoom="14"</code></td><td>Anfangs-Zoom-Stufe (1–22)</td></tr>
                         <tr><td><code>min-zoom</code></td><td><code>0</code></td><td><code>min-zoom="5"</code></td><td>Minimaler Zoom-Level (Benutzer kann nicht weiter herauszoomen)</td></tr>
                         <tr><td><code>max-zoom</code></td><td><code>22</code></td><td><code>max-zoom="18"</code></td><td>Maximaler Zoom-Level (Benutzer kann nicht weiter hineinzoomen)</td></tr>
-                        <tr><td><code>map-style</code></td><td><code>liberty</code></td><td><code>map-style="bright"</code></td><td>Stil: <code>liberty</code> | <code>bright</code> | <code>positron</code> oder gespeicherter Theme-Name</td></tr>
+                        <tr><td><code>map-style</code></td><td><code>liberty</code></td><td><code>map-style="bright"</code></td><td>Stil: <code>liberty</code> | <code>bright</code> | <code>positron</code> | <code>satellite</code> oder gespeicherter Theme-Name</td></tr>
+                        <tr><td><code>show-satellite</code></td><td><code>false</code></td><td><code>show-satellite</code></td><td>Satellitenbild-Toggle-Button einblenden (ESRI World Imagery, kein API-Key, Boolean-Attribut)</td></tr>
                         <tr><td><code>height</code></td><td><code>400</code></td><td><code>height="60vh"</code></td><td>Höhe in px, vh, % …</td></tr>
                         <tr><td><code>pitch</code></td><td><code>0</code></td><td><code>pitch="60"</code></td><td>Kamerakippung 0–85°</td></tr>
                         <tr><td><code>bearing</code></td><td><code>0</code></td><td><code>bearing="45"</code></td><td>Kameraausrichtung in Grad</td></tr>
@@ -433,6 +435,45 @@
                     route-no-steps>
                 </vectormap>
                 <p class="text-muted" style="font-size:12px;margin-top:4px">Zieladresse per <code>route-to</code> vorgeben + <code>route-to-locked</code> sperrt das Feld. <code>route-no-steps</code> blendet Turn-by-Turn aus &mdash; ideal f&uuml;r Kontaktseiten.</p>
+            </div>
+        </div>
+
+        <!-- BEISPIEL 5e: Satellitenbild (map-style + show-satellite) -->
+        <div class="row" style="margin-bottom:8px">
+            <div class="col-md-6">
+                <h4 style="margin-top:0">5e. Satellitenbild <span class="label label-success">map-style="satellite"</span></h4>
+                <p class="text-muted" style="font-size:13px;margin-bottom:8px">ESRI World Imagery &ndash; kein API-Key, kostenlos, Attribution automatisch. Marker &uuml;berleben den Style-Wechsel.</p>
+                <pre style="font-size:12px">&lt;vectormap
+    lat="48.858844" lng="2.294351" zoom="15"
+    height="340"
+    map-style="satellite"&gt;
+  &lt;marker lat="48.858844" lng="2.294351"
+          popup="Eiffelturm aus der Vogelperspektive" /&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    lat="48.858844" lng="2.294351" zoom="15"
+                    height="340"
+                    map-style="satellite">
+                    <marker lat="48.858844" lng="2.294351" popup="Eiffelturm aus der Vogelperspektive"></marker>
+                </vectormap>
+            </div>
+            <div class="col-md-6">
+                <h4 style="margin-top:0">5f. Vektor + Satellite Toggle <span class="label label-success">show-satellite</span></h4>
+                <p class="text-muted" style="font-size:13px;margin-bottom:8px">Mit <code>show-satellite</code> erscheint ein Knopf zum Umschalten zwischen Vektorkarte und Satellitenbild. Marker bleiben beim Wechsel erhalten.</p>
+                <pre style="font-size:12px">&lt;vectormap
+    lat="52.520008" lng="13.404954" zoom="13"
+    height="340"
+    show-satellite&gt;
+  &lt;marker lat="52.520008" lng="13.404954"
+          popup="Brandenburger Tor" /&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    lat="52.520008" lng="13.404954" zoom="13"
+                    height="340"
+                    show-satellite>
+                    <marker lat="52.520008" lng="13.404954" popup="Brandenburger Tor"></marker>
+                </vectormap>
+                <p class="text-muted" style="font-size:12px;margin-top:4px">Satellite-Button unten rechts (&#x1F6F0;) &mdash; Satel&shy;litenbild via ESRI World Imagery, kein API-Key ben&ouml;tigt.</p>
             </div>
         </div>
 

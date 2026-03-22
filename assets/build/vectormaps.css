@@ -269,6 +269,44 @@ body.rex-theme-dark .vm-locate-widget {
 }
 
 /* =============================================================================
+   Satellite-Toggle-Button — Satellitenbild umschalten
+   ============================================================================= */
+.vm-satellite-widget {
+    position: absolute;
+    bottom: 134px;
+    right: 10px;
+    z-index: 10;
+    width: 30px;
+    height: 30px;
+    padding: 5px;
+    background: #fff;
+    border: none;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, .1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+    transition: background .15s, color .15s;
+}
+
+.vm-satellite-widget:hover {
+    background: #f0f7ff;
+    color: #2b7095;
+}
+
+.vm-satellite-widget--active {
+    background: #2b7095;
+    color: #fff;
+    box-shadow: 0 0 0 2px #2b7095;
+}
+
+.vm-satellite-widget--active:hover {
+    background: #236082;
+}
+
+/* =============================================================================
    Route-Info-Badge — Overlay-Badge oben über der Karte
    ============================================================================= */
 .vm-route-badge {

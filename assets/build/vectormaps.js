@@ -209,6 +209,7 @@ class VectorMapPicker {
     }
 
     proxyStyleUrl(styleName) {
+        if (styleName === 'satellite') return VM_SATELLITE_STYLE;
         return this.proxyUrl('https://tiles.openfreemap.org/styles/' + styleName);
     }
 
@@ -478,14 +479,17 @@ class VectorMapPicker {
         // styledata: NUR 3D-Gebäude (idempotent durch getLayer-Check).
         // setLanguage + vmApplyTheme feuern selbst styledata-Events → NICHT hier aufrufen!
         // Nach Stil-Wechsel werden sie stattdessen via map.once('idle', ...) aufgerufen.
+        // Auf Satellitenbild gibt es keinen Vektor-Layer → kein 3D möglich.
+        const _isSatellite = () => map.isStyleLoaded() && !!map.getSource('satellite');
         map.on('styledata', () => {
             if (!map.isStyleLoaded()) return;
-            add3dBuildings();
+            if (!_isSatellite()) add3dBuildings();
         });
 
         // Hilfsfunktion: Sprache + Theme nach Stil-Wechsel einmalig sauber anwenden
         const _demoApplyLangTheme = () => {
             if (!map.isStyleLoaded()) return;
+            if (_isSatellite()) return; // Kein Sprach-/Theme-Layer auf Satellitenbild
             vmSetLanguage(map, _demoCurrentLang);
             if (map._vmThemeColors) vmApplyTheme(map, map._vmThemeColors);
         };
@@ -561,7 +565,7 @@ class VectorMapPicker {
    Attribute:
      center="lat,lng"           Kartenmittelpunkt (Standard: Deutschland-Mitte)
      zoom="6"                   Zoom-Stufe
-     map-style="liberty"        Stil: liberty|bright|positron oder vollständige URL
+     map-style="liberty"        Stil: liberty|bright|positron|satellite oder vollständige URL
      pitch="0"                  Kamerakippung (0–85°)
      bearing="0"                Kameraausrichtung
      height="400"               Höhe in px (oder "60vh", "100%" usw.)
@@ -577,6 +581,7 @@ class VectorMapPicker {
        – anchor  Ankerpunkt des Custom-Pins: bottom (Standard) | center | top | left | right
        – size    [Breite, Höhe] in px für icon-Marker, z.B. [40,40]
      cluster                    Marker clustern
+     show-satellite             Satellitenbild-Toggle-Button einblenden (ESRI World Imagery, kein API-Key)
      route-from="lat,lng"       Routing-Startpunkt (Koordinaten oder Adresse)
      route-to="lat,lng"         Routing-Zielpunkt  (Koordinaten oder Adresse)
      route-mode="driving"       driving | walking | cycling
@@ -597,6 +602,24 @@ class VectorMapPicker {
 
 /** Bekannte OpenFreeMap-Stil-Namen (werden direkt an OFM weitergeleitet) */
 const VM_OFM_STYLES = ['liberty', 'bright', 'positron'];
+
+/**
+ * ESRI World Imagery — kostenloses Satellitenbild (kein API-Key erforderlich).
+ * Nur die Basiskacheln; keine Beschriftungen, kein Proxy nötig.
+ */
+const VM_SATELLITE_STYLE = {
+    version: 8,
+    sources: {
+        satellite: {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            attribution: '© Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxzoom: 19,
+        },
+    },
+    layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }],
+};
 
 
 
@@ -674,6 +697,7 @@ function vmProxyUrl(url) {
 }
 
 function vmProxyStyleUrl(nameOrUrl) {
+    if (nameOrUrl === 'satellite') return VM_SATELLITE_STYLE;
     if (nameOrUrl.startsWith('http')) return vmProxyUrl(nameOrUrl);
     // Bekannte OFM-Styles direkt weiterleiten
     if (VM_OFM_STYLES.includes(nameOrUrl)) {
@@ -1031,6 +1055,10 @@ function vmBuildMap(el) {
 
     if (el.hasAttribute('locate')) {
         vmAddLocateButton(el, map);
+    }
+
+    if (el.hasAttribute('show-satellite')) {
+        vmAddSatelliteToggle(el, map, mapStyle);
     }
 
     // Route-Panel (interaktive Adresssuche) — vor map.on('load') damit Panel sofort im DOM ist
@@ -1703,7 +1731,52 @@ function vmAddLocateButton(el, map) {
 }
 
 /**
- * Baut einen Overpass-QL-Query für einen Kreis um den angegebenen Mittelpunkt.
+ * Fügt einen Satellitenbild-Toggle-Button zur Karte hinzu.
+ * Wechselt zwischen dem aktuellen Vektorstil und ESRI World Imagery.
+ * Nach Rückkehr zum Vektorstil werden Sprache und GeoJSON neu gesetzt.
+ * Marker (HTML-Elemente) überleben Style-Wechsel automatisch.
+ * @param {HTMLElement} el
+ * @param {maplibregl.Map} map
+ * @param {string} baseStyleName - Name des Basisstils (z.B. 'liberty')
+ */
+function vmAddSatelliteToggle(el, map, baseStyleName) {
+    let isSat = false;
+
+    const btn = document.createElement('button');
+    btn.type  = 'button';
+    btn.className = 'vm-satellite-widget';
+    btn.title = 'Satellitenbild umschalten';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="2"/>
+        <path d="M6.3 6.3 3 3"/>
+        <path d="M17.7 6.3 21 3"/>
+        <path d="M6.3 17.7 3 21"/>
+        <path d="M17.7 17.7 21 21"/>
+        <path d="M9 9a4 4 0 0 1 6 0"/>
+        <path d="M6 6a8 8 0 0 1 12 0"/>
+    </svg>`;
+
+    btn.addEventListener('click', () => {
+        isSat = !isSat;
+        btn.classList.toggle('vm-satellite-widget--active', isSat);
+        btn.title = isSat ? 'Zur Vektorkarte wechseln' : 'Satellitenbild umschalten';
+
+        if (isSat) {
+            map.setStyle(VM_SATELLITE_STYLE);
+        } else {
+            const vectorStyle = vmProxyStyleUrl(baseStyleName);
+            map.setStyle(vectorStyle);
+            map.once('idle', () => {
+                vmSetLanguage(map, el._vmLang || 'de');
+                vmLoadGeoJson(el, map);
+            });
+        }
+    });
+
+    el.appendChild(btn);
+}
+
+/**
  * Unterstützt einfache Ausdrücke wie: amenity=charging_station, shop=supermarket,
  * leisure=park, natural=tree sowie composite: amenity=fuel|amenity=charging_station
  * @param {string} filter   Overpass-Filter-Ausdruck
