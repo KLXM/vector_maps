@@ -11,6 +11,9 @@ page:
   perm: 'vector_maps[]'
   icon: 'rex-icon rex-icon-vector-maps'
   subpages:
+    readme:
+      title: 'translate:readme'
+      subPath: README.md
     demo:
       title: 'translate:vector_maps_demo'
     themes:
