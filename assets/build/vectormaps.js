@@ -604,6 +604,9 @@ class VectorMapPicker {
 /** Bekannte OpenFreeMap-Stil-Namen (werden direkt an OFM weitergeleitet) */
 const VM_OFM_STYLES = ['liberty', 'bright', 'positron'];
 
+/** Raster-Stile (kein Vektor, kein Sprach-/Theme-Layer) */
+const VM_RASTER_STYLES = ['satellite', 'hybrid'];
+
 /**
  * ESRI World Imagery — kostenloses Satellitenbild (kein API-Key erforderlich).
  * Nur die Basiskacheln; keine Beschriftungen, kein Proxy nötig.
@@ -1044,8 +1047,9 @@ function vmBuildMap(el) {
     // Sprache: Attribut > html[lang]-Attribut > navigator.language > 'de'
     const lang = el.getAttribute('language')
         || (document.documentElement.lang || navigator.language || 'de').slice(0, 2);
-    // Theme: 'theme'-Attribut ODER map-style falls kein bekannter OFM-Stil
-    const isThemeStyle = !VM_OFM_STYLES.includes(mapStyle) && !mapStyle.startsWith('http');
+    // Theme: 'theme'-Attribut ODER map-style falls kein bekannter OFM-Stil und kein Raster-Stil
+    const isRaster    = VM_RASTER_STYLES.includes(mapStyle);
+    const isThemeStyle = !isRaster && !VM_OFM_STYLES.includes(mapStyle) && !mapStyle.startsWith('http');
     const activeTheme  = el.getAttribute('theme') || (isThemeStyle ? mapStyle : null);
 
     // Karten-Container
@@ -1104,11 +1108,11 @@ function vmBuildMap(el) {
         const nearbyLocate = el.hasAttribute('nearby-locate');
 
         map.on('load', () => {
-            vmSetLanguage(map, lang);
-            if (has3d) vmAdd3dBuildings(map);
+            if (!isRaster) vmSetLanguage(map, lang);
+            if (has3d && !isRaster) vmAdd3dBuildings(map);
             vmAddMarkers(el, map);
             vmLoadGeoJson(el, map);
-            if (activeTheme) vmLoadAndApplyTheme(map, activeTheme);
+            if (activeTheme && !isRaster) vmLoadAndApplyTheme(map, activeTheme);
             if (nearbyLocate) {
                 vmStartNearbyWithLocate(el, map, nearbyFilter, nearbyRadius, nearbyLabel);
             } else {
@@ -1118,9 +1122,9 @@ function vmBuildMap(el) {
         });
     } else {
         map.on('load', () => {
-            // Sprache setzen
-            vmSetLanguage(map, lang);
-            if (has3d) vmAdd3dBuildings(map);
+            // Sprache setzen (nur bei Vektor-Stilen)
+            if (!isRaster) vmSetLanguage(map, lang);
+            if (has3d && !isRaster) vmAdd3dBuildings(map);
             vmAddMarkers(el, map);
             vmLoadGeoJson(el, map);
 
@@ -1160,7 +1164,7 @@ function vmBuildMap(el) {
             }
 
             // Theme anwenden (nach Routing/Markern, damit Layer-Reihenfolge stimmt)
-            if (activeTheme) vmLoadAndApplyTheme(map, activeTheme);
+            if (activeTheme && !isRaster) vmLoadAndApplyTheme(map, activeTheme);
         });
     }
 
@@ -1168,7 +1172,7 @@ function vmBuildMap(el) {
     // setLanguage + vmApplyTheme auslösen selbst styledata-Events — NICHT hier aufrufen!
     map.on('styledata', () => {
         if (!map.isStyleLoaded()) return;
-        if (has3d) vmAdd3dBuildings(map);
+        if (has3d && !isRaster) vmAdd3dBuildings(map);
     });
 
     // Sprache über JS-API änderbar machen
