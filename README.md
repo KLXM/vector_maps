@@ -152,7 +152,7 @@ worker-src blob:;
 | `height` | `400` | `height="600px"` | CSS-Höhe des Karten-Containers |
 | `pitch` | `0` | `pitch="45"` | Kamerakippung in Grad (0–60) |
 | `bearing` | `0` | `bearing="45"` | Kartenausrichtung in Grad |
-| `map-style` | `liberty` | `map-style="hybrid"` | OFM-Stilname: `liberty`, `bright`, `positron`, `satellite`, `hybrid` (Satellit + Beschriftungen) – oder Theme-Name |
+| `map-style` | `liberty` | `map-style="satellite"` | OFM-Stilname: `liberty`, `bright`, `positron`, `satellite` (ESRI World Imagery) – oder Theme-Name |
 | `show-satellite` | `false` | `show-satellite` | Toggle-Button zum Wechsel zwischen Vektor- und Satellitenbild (ESRI World Imagery, kein API-Key) |
 | `theme` | – | `theme="dark"` | Farb-Theme: `dark`, `warm`, `mono` oder eigener Theme-Name |
 | `language` | `de` | `language="en"` | Sprachcode für Kartenbeschriftungen (ISO 639-1) |
@@ -236,19 +236,13 @@ Wenn das Ziel fest vorgegeben ist (z.B. ein Firmenstandort), kann das Zielfeld e
 
 ## Satellitenbild
 
-Drei Möglichkeiten, ESRI-Luftbilder (kostenlos, kein API-Key) zu nutzen:
+Zwei Möglichkeiten, ESRI World Imagery (kostenlos, kein API-Key) zu nutzen:
 
 ```html
 <!-- Reines Satellitenbild -->
 <vectormap lat="48.858844" lng="2.294351" zoom="16" height="400px"
     map-style="satellite">
     <marker lat="48.858844" lng="2.294351" popup="Eiffelturm"></marker>
-</vectormap>
-
-<!-- Hybrid: Satellitenbild + Beschriftungen/Straßen als Overlay -->
-<vectormap lat="48.210033" lng="16.363449" zoom="14" height="400px"
-    map-style="hybrid">
-    <marker lat="48.210033" lng="16.363449" popup="Wien Stephansdom"></marker>
 </vectormap>
 
 <!-- Vektor-Karte mit Toggle-Button für Satellitenansicht -->
@@ -261,10 +255,9 @@ Drei Möglichkeiten, ESRI-Luftbilder (kostenlos, kein API-Key) zu nutzen:
 | Stil | Beschreibung |
 |------|-------------|
 | `satellite` | Reines Satellitenbild (ESRI World Imagery) |
-| `hybrid` | Satellitenbild + transparentes Beschriftungs-/Straßen-Overlay (ESRI Reference) |
 | `show-satellite` | Toggle-Button zum Wechsel zwischen aktuellem Vektorstil und Satellitenbild |
 
-Der `show-satellite` Toggle-Button erscheint unten rechts. Marker bleiben beim Wechsel erhalten, GeoJSON-Layer werden nach Rückkehr zur Vektorkarte automatisch neu geladen. Sprach- und Farb-Themes werden auf Raster-Stilen automatisch deaktiviert.
+Der `show-satellite` Toggle-Button erscheint unten rechts. Marker bleiben beim Wechsel erhalten, GeoJSON-Layer werden nach Rückkehr zur Vektorkarte automatisch neu geladen.
 
 > **Hinweis:** ESRI World Imagery und das Referenz-Overlay sind frei nutzbar (Lizenz: Esri Master License Agreement). Attribution wird automatisch gesetzt. Für gewerbliche Hochlast-Szenarien empfiehlt sich ein eigener Tile-Server.
 

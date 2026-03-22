@@ -210,7 +210,6 @@ class VectorMapPicker {
 
     proxyStyleUrl(styleName) {
         if (styleName === 'satellite') return VM_SATELLITE_STYLE;
-        if (styleName === 'hybrid')    return VM_HYBRID_STYLE;
         return this.proxyUrl('https://tiles.openfreemap.org/styles/' + styleName);
     }
 
@@ -566,7 +565,7 @@ class VectorMapPicker {
    Attribute:
      center="lat,lng"           Kartenmittelpunkt (Standard: Deutschland-Mitte)
      zoom="6"                   Zoom-Stufe
-     map-style="liberty"        Stil: liberty|bright|positron|satellite|hybrid oder vollständige URL
+     map-style="liberty"        Stil: liberty|bright|positron|satellite oder vollständige URL
      pitch="0"                  Kamerakippung (0–85°)
      bearing="0"                Kameraausrichtung
      height="400"               Höhe in px (oder "60vh", "100%" usw.)
@@ -605,7 +604,7 @@ class VectorMapPicker {
 const VM_OFM_STYLES = ['liberty', 'bright', 'positron'];
 
 /** Raster-Stile (kein Vektor, kein Sprach-/Theme-Layer) */
-const VM_RASTER_STYLES = ['satellite', 'hybrid'];
+const VM_RASTER_STYLES = ['satellite'];
 
 /**
  * ESRI World Imagery — kostenloses Satellitenbild (kein API-Key erforderlich).
@@ -623,34 +622,6 @@ const VM_SATELLITE_STYLE = {
         },
     },
     layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }],
-};
-
-/**
- * ESRI Hybrid — Satellitenbild + Straßen/Beschriftungen als transparenter Overlay.
- * World_Reference_Overlay enthält Straßen, Ortsnamen und Grenzen als transparentes PNG.
- * Kein API-Key erforderlich, Attribution wird automatisch gesetzt.
- */
-const VM_HYBRID_STYLE = {
-    version: 8,
-    sources: {
-        satellite: {
-            type: 'raster',
-            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-            tileSize: 256,
-            attribution: '© Esri — Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-            maxzoom: 19,
-        },
-        labels: {
-            type: 'raster',
-            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}'],
-            tileSize: 256,
-            maxzoom: 19,
-        },
-    },
-    layers: [
-        { id: 'satellite', type: 'raster', source: 'satellite' },
-        { id: 'labels',    type: 'raster', source: 'labels' },
-    ],
 };
 
 /**
@@ -728,7 +699,6 @@ function vmProxyUrl(url) {
 
 function vmProxyStyleUrl(nameOrUrl) {
     if (nameOrUrl === 'satellite') return VM_SATELLITE_STYLE;
-    if (nameOrUrl === 'hybrid')    return VM_HYBRID_STYLE;
     if (nameOrUrl.startsWith('http')) return vmProxyUrl(nameOrUrl);
     // Bekannte OFM-Styles direkt weiterleiten
     if (VM_OFM_STYLES.includes(nameOrUrl)) {

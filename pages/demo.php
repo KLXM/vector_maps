@@ -55,7 +55,6 @@
                     <button type="button" class="btn btn-sm btn-default vm-demo-style-btn" data-style="bright">Bright</button>
                     <button type="button" class="btn btn-sm btn-default vm-demo-style-btn" data-style="positron">Positron</button>
                     <button type="button" class="btn btn-sm btn-default vm-demo-style-btn" data-style="satellite" title="ESRI World Imagery &ndash; kein API-Key">&#x1F6F0; Satellit</button>
-                    <button type="button" class="btn btn-sm btn-default vm-demo-style-btn" data-style="hybrid" title="Satellitenbild + Beschriftungen">&#x1F30F; Hybrid</button>
                 </div>
             </div>
             <div>
@@ -245,7 +244,7 @@
                         <tr><td><code>zoom</code></td><td><code>6</code></td><td><code>zoom="14"</code></td><td>Anfangs-Zoom-Stufe (1–22)</td></tr>
                         <tr><td><code>min-zoom</code></td><td><code>0</code></td><td><code>min-zoom="5"</code></td><td>Minimaler Zoom-Level (Benutzer kann nicht weiter herauszoomen)</td></tr>
                         <tr><td><code>max-zoom</code></td><td><code>22</code></td><td><code>max-zoom="18"</code></td><td>Maximaler Zoom-Level (Benutzer kann nicht weiter hineinzoomen)</td></tr>
-                        <tr><td><code>map-style</code></td><td><code>liberty</code></td><td><code>map-style="hybrid"</code></td><td>Stil: <code>liberty</code> | <code>bright</code> | <code>positron</code> | <code>satellite</code> | <code>hybrid</code> (Satellit+Beschriftungen) oder gespeicherter Theme-Name</td></tr>
+                        <tr><td><code>map-style</code></td><td><code>liberty</code></td><td><code>map-style="satellite"</code></td><td>Stil: <code>liberty</code> | <code>bright</code> | <code>positron</code> | <code>satellite</code> (ESRI World Imagery) oder gespeicherter Theme-Name</td></tr>
                         <tr><td><code>show-satellite</code></td><td><code>false</code></td><td><code>show-satellite</code></td><td>Satellitenbild-Toggle-Button einblenden (ESRI World Imagery, kein API-Key, Boolean-Attribut)</td></tr>
                         <tr><td><code>height</code></td><td><code>400</code></td><td><code>height="60vh"</code></td><td>Höhe in px, vh, % …</td></tr>
                         <tr><td><code>pitch</code></td><td><code>0</code></td><td><code>pitch="60"</code></td><td>Kamerakippung 0–85°</td></tr>
@@ -475,28 +474,6 @@
                     <marker lat="52.520008" lng="13.404954" popup="Brandenburger Tor"></marker>
                 </vectormap>
                 <p class="text-muted" style="font-size:12px;margin-top:4px">Satellite-Button unten rechts (&#x1F6F0;) &mdash; Satel&shy;litenbild via ESRI World Imagery, kein API-Key ben&ouml;tigt.</p>
-            </div>
-        </div>
-
-        <!-- BEISPIEL 5g: Hybrid (Satellit + Beschriftungen) -->
-        <div class="row" style="margin-bottom:8px">
-            <div class="col-md-12">
-                <h4 style="margin-top:0">5g. Hybrid &ndash; Satellitenbild mit Beschriftungen <span class="label label-success">map-style=&quot;hybrid&quot;</span></h4>
-                <p class="text-muted" style="font-size:13px;margin-bottom:8px">Satellitenbild (ESRI World Imagery) mit transparentem Beschriftungs-Overlay (ESRI Reference). Stra&szlig;ennamen, Ortsnamen und Grenzen werden &uuml;ber das Luftbild gelegt &mdash; kein API-Key, beide Quellen kostenlos.</p>
-                <pre style="font-size:12px">&lt;vectormap
-    lat="48.210033" lng="16.363449" zoom="14"
-    height="400px"
-    map-style="hybrid"&gt;
-  &lt;marker lat="48.210033" lng="16.363449"
-          popup="Wien Stephansdom" /&gt;
-&lt;/vectormap&gt;</pre>
-                <vectormap
-                    lat="48.210033" lng="16.363449" zoom="14"
-                    height="400px"
-                    map-style="hybrid">
-                    <marker lat="48.210033" lng="16.363449" popup="Wien Stephansdom"></marker>
-                </vectormap>
-                <p class="text-muted" style="font-size:12px;margin-top:4px">Beide Kachel-Dienste laufen &uuml;ber den REDAXO-Proxy (&rarr; DSGVO-konform). Attribution wird automatisch gesetzt.</p>
             </div>
         </div>
 
