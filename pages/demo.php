@@ -267,6 +267,8 @@
                         <tr><td><code>route-to</code></td><td>&ndash;</td><td><code>route-to="48.14,11.58"</code></td><td>Routing-Ziel <em>lat,lng</em></td></tr>
                         <tr><td><code>route-mode</code></td><td><code>driving</code></td><td><code>route-mode="walking"</code></td><td><code>driving</code> | <code>walking</code> | <code>cycling</code></td></tr>
                         <tr><td><code>route-panel</code></td><td><code>false</code></td><td><code>route-panel</code></td><td>Interaktives Adresssuch-Panel einblenden (Boolean-Attribut) &ndash; Nutzer k&ouml;nnen Von/Nach-Adressen direkt in der Karte eingeben</td></tr>
+                        <tr><td><code>route-to-locked</code></td><td><code>false</code></td><td><code>route-to-locked</code></td><td>Zieladresse fixieren: Feld readonly, kein Autocomplete (Boolean-Attribut) &ndash; ideal für Anfahrtskarten mit festem Ziel</td></tr>
+                        <tr><td><code>route-no-steps</code></td><td><code>false</code></td><td><code>route-no-steps</code></td><td>Abbiegehinweise (Turn-by-Turn) ausblenden (Boolean-Attribut)</td></tr>
                         <tr><td><code>nearby</code></td><td>&ndash;</td><td><code>nearby="amenity=charging_station"</code></td><td>Overpass-Filter für POI-Umgebungssuche. Mehrere mit <code>|</code> trennen: <code>amenity=fuel|amenity=charging_station</code></td></tr>
                         <tr><td><code>nearby-radius</code></td><td><code>1000</code></td><td><code>nearby-radius="2000"</code></td><td>Suchradius in Metern (Standard: 1000&thinsp;m)</td></tr>
                         <tr><td><code>nearby-label</code></td><td><em>OSM-Tags</em></td><td><code>nearby-label="Ladestation"</code></td><td>Fallback-Label für Marker-Popups wenn kein <code>name</code>-Tag vorhanden</td></tr>
@@ -406,6 +408,31 @@
                     route-mode="driving"
                     route-panel>
                 </vectormap>
+            </div>
+        </div>
+
+        <!-- BEISPIEL 5d: Anfahrtskarte (route-to-locked + route-no-steps) -->
+        <div class="row" style="margin-bottom:8px">
+            <div class="col-md-12">
+                <h4 style="margin-top:0">5d. Anfahrtskarte – fixiertes Ziel <span class="label label-success">route-to-locked</span> <span class="label label-default">route-no-steps</span></h4>
+                <p class="text-muted" style="font-size:13px;margin-bottom:8px">Das Ziel ist fest vorgegeben (z.&nbsp;B. Firmenstandort). Der Nutzer gibt nur seinen Startpunkt ein &ndash; kein Autocomplete am Zielfeld, keine Abbiegehinweise.</p>
+                <pre style="font-size:12px">&lt;vectormap
+    lat="51.4298" lng="6.7742" zoom="11"
+    height="420px"
+    route-panel
+    route-to="Duisburg Hauptbahnhof"
+    route-to-locked
+    route-no-steps&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    lat="51.4298" lng="6.7742" zoom="11"
+                    height="420px"
+                    route-panel
+                    route-to="Duisburg Hauptbahnhof"
+                    route-to-locked
+                    route-no-steps>
+                </vectormap>
+                <p class="text-muted" style="font-size:12px;margin-top:4px">Zieladresse per <code>route-to</code> vorgeben + <code>route-to-locked</code> sperrt das Feld. <code>route-no-steps</code> blendet Turn-by-Turn aus &mdash; ideal f&uuml;r Kontaktseiten.</p>
             </div>
         </div>
 
