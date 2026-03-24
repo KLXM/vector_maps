@@ -166,6 +166,9 @@ class ThemeManager
             exit;
         }
 
+        // Kein Browser-Caching: Theme-Änderungen sollen sofort wirken
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+        header('Pragma: no-cache');
         rex_response::sendJson($theme);
         exit;
     }

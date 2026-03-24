@@ -857,7 +857,7 @@ async function vmLoadAndApplyTheme(map, themeName) {
         colors = VM_BUILT_IN_THEMES[themeName].colors;
     } else {
         try {
-            const resp = await fetch(window.location.origin + '/?rex_api_vector_maps_theme=' + encodeURIComponent(themeName));
+            const resp = await fetch(window.location.origin + '/?rex_api_vector_maps_theme=' + encodeURIComponent(themeName), { cache: 'no-store' });
             if (!resp.ok) { console.warn('<vectormap> Theme nicht gefunden:', themeName); return; }
             const data = await resp.json();
             colors = data.colors;
