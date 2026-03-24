@@ -17,7 +17,8 @@ Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, volls
 - **Dynamisches Datennachladen** – GeoJSON-Source per `moveend` aktualisieren (z. B. Ladestationen live aus OSM)
 - **Freie Wetter-APIs** – Open-Meteo und Bright Sky (DWD) via Proxy, kein API-Key, Badge-Marker mit Live-Daten
 - **Standortsuche** – optionale Geolokalisierung des Nutzers als Ausgangspunkt
-- **Themes** – `dark`, `warm`, `mono` eingebaut, frei erweiterbar via Theme-Editor im Backend
+- **Themes** – `dark`, `warm`, `mono` eingebaut, frei erweiterbar via Theme-Editor im Backend; Themes werden per Fetch geladen und erst danach eingeblendet (kein Flash of Unstyled Map)
+- **Theme-Fade-in** – Karte blendet sich sanft ein sobald das Theme geladen ist; Dauer per `theme-transition`-Attribut (ms) steuerbar
 - **3D-Gebäude** – aktivierbar per Attribut
 - **Mehrsprachigkeit** – Sprachcode per `language`-Attribut, steuert Kartenbeschriftungen von OpenFreeMap
 - **Cluster** – automatische Marker-Bündelung bei vielen Punkten
@@ -153,6 +154,7 @@ worker-src blob:;
 | `map-style` | `liberty` | `map-style="satellite"` | OFM-Stilname: `liberty`, `bright`, `positron`, `satellite` (ESRI World Imagery) – oder Theme-Name |
 | `show-satellite` | `false` | `show-satellite` | Toggle-Button zum Wechsel zwischen Vektor- und Satellitenbild (ESRI World Imagery, kein API-Key) |
 | `theme` | – | `theme="dark"` | Farb-Theme: `dark`, `warm`, `mono` oder eigener Theme-Name |
+| `theme-transition` | `350` | `theme-transition="600"` | Einblend-Dauer in ms nach Theme-Load (0 = sofort, Standard: 350) |
 | `language` | `de` | `language="en"` | Sprachcode für Kartenbeschriftungen (ISO 639-1) |
 | `markers` | – | `markers='[{"lat":51.51,"lng":-0.12}]'` | JSON-Array mit Marker-Objekten |
 | `fit-bounds` | auto | `fit-bounds="false"` | Kartenausschnitt an alle Marker anpassen. Standard: aktiv bei mehreren Markern; mit `fit-bounds="false"` deaktivieren |
@@ -404,12 +406,29 @@ Drei eingebaute Themes stehen sofort zur Verfügung:
 
 | Theme | Attribut | Beschreibung |
 |---|---|---|
-| Standard | _(leer)_ | Helles Standardlayout (OpenFreeMap Bright) |
-| `dark` | `theme="dark"` | Dunkles Layout (OpenFreeMap Dark) |
+| Standard | _(leer)_ | Helles Standardlayout (OpenFreeMap Liberty) |
+| `dark` | `theme="dark"` | Dunkles Layout |
 | `warm` | `theme="warm"` | Warmes Orange-/Beigelayout |
 | `mono` | `theme="mono"` | Graustufen-Layout |
 
 Eigene Themes können im Backend unter **Vector Maps → Themes** angelegt und live per Theme-Editor konfiguriert werden.
+
+### Theme-Fade-in
+
+Bei Karten mit einem Theme (`theme="..."` oder `map-style="<eigener-name>"`) bleibt die Karte zunächst unsichtbar und blendet sich sanft ein, sobald das Theme vollständig geladen und angewendet wurde. Das verhindert das kurze Aufblitzen des ungestylten Grundstils ("Flash of Unstyled Map").
+
+Die Einblend-Dauer ist per Attribut steuerbar:
+
+```html
+<!-- Standard: 350 ms -->
+<vectormap map-style="klxm" height="400px"></vectormap>
+
+<!-- Langsam: 800 ms -->
+<vectormap map-style="klxm" theme-transition="800" height="400px"></vectormap>
+
+<!-- Sofort (kein Fade): 0 ms -->
+<vectormap map-style="klxm" theme-transition="0" height="400px"></vectormap>
+```
 
 ---
 
