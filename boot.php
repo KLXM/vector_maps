@@ -82,7 +82,8 @@ if (!rex::isBackend()) {
 
         rex_extension::register('OUTPUT_FILTER', static function(\rex_extension_point $ep) use ($vmFe): void {
             $subject = $ep->getSubject();
-            if (!str_contains($subject, '</head>') && !str_contains($subject, '</body>')) {
+            // Assets nur einbinden wenn eine Karte auf der Seite vorhanden ist
+            if (!str_contains($subject, '<vector-map') && !str_contains($subject, '<vectormap')) {
                 return;
             }
             $css = '<link rel="stylesheet" href="' . $vmFe('maplibre/maplibre-gl.css') . "\">
