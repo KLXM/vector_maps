@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Abhängigkeiten installieren
+        working-directory: build
+        run: npm ci
+
+      - name: Assets bauen (minifizieren + Vendor-Update)
+        working-directory: build
+        run: npm run build:all
+
+      - name: Release-ZIP erstellen
+        run: |
+          TAG=${GITHUB_REF_NAME}
+          ZIP_NAME="vector_maps_${TAG}.zip"
+
+          zip -r "$ZIP_NAME" . \
+            --exclude "*.git*" \
+            --exclude ".gitignore" \
+            --exclude ".github/*" \
+            --exclude "build/*" \
+            --exclude "*.map" \
+            --exclude "*.DS_Store" \
+            --exclude "*.swp"
+
+          echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
+
+      - name: GitHub Release erstellen
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true

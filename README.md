@@ -687,6 +687,99 @@ Der Proxy unter `lib/Proxy.php` validiert alle Anfragen gegen eine Whitelist und
 
 ---
 
+## Build-System (Entwicklung)
+
+Der `build/`-Ordner enthält das Build-Tooling für Entwickler. **Für den normalen Einsatz des AddOns wird kein Build-Schritt benötigt** — alle kompilierten Assets liegen bereits fertig im Repository.
+
+### Ordnerstruktur
+
+```
+vector_maps/
+├── assets/
+│   ├── build/                   # Eigene Assets (Quelle + kompiliert)
+│   │   ├── vectormaps.js        # Quelle: <vectormap> Web Component + Picker
+│   │   ├── vectormaps.min.js    # Minifiziert (vom Build generiert)
+│   │   ├── vectormaps_i18n.js   # Quelle: Frontend-Übersetzungen
+│   │   ├── vectormaps_i18n.min.js
+│   │   ├── theme-editor.js      # Quelle: Backend Theme-Editor
+│   │   ├── theme-editor.min.js
+│   │   ├── vectormaps.css       # Quelle: Styles
+│   │   └── vectormaps.min.css   # Minifiziert (vom Build generiert)
+│   └── maplibre/                # Vendor-Assets (von npm kopiert)
+│       ├── maplibre-gl.js       # MapLibre GL JS
+│       ├── maplibre-gl.css      # MapLibre GL JS Styles
+│       └── pmtiles.js           # PMTiles-Decoder
+├── build/                       # Build-Tooling (nicht im Release-ZIP)
+│   ├── package.json             # npm-Abhängigkeiten (esbuild, maplibre-gl, pmtiles)
+│   └── build.mjs                # Build-Script
+└── .github/
+    └── workflows/
+        └── release.yml          # GitHub Actions: Release-ZIP auf Tag-Push
+```
+
+> `build/node_modules/` und `*.map`-Dateien sind per `.gitignore` ausgeschlossen und landen nicht im Release-ZIP.
+
+### Voraussetzungen
+
+- Node.js >= 18
+- npm
+
+### Setup
+
+```bash
+cd vector_maps/build
+npm install
+```
+
+### Befehle
+
+| Befehl | Beschreibung |
+|---|---|
+| `npm run build` | Eigene Assets (`assets/build/`) minifizieren |
+| `npm run build:all` | Vendor-Assets aus npm aktualisieren **und** eigene Assets minifizieren |
+| `npm run watch` | Watch-Modus: automatisch neu bauen bei Dateiänderungen (+ Source Maps) |
+
+### Eigene Assets minifizieren
+
+```bash
+cd build
+npm run build
+```
+
+Erzeugt `*.min.js` / `*.min.css` aus den Quelldateien in `assets/build/`.
+
+### Vendor-Assets aktualisieren (z. B. neues MapLibre-Release)
+
+```bash
+cd build
+npm install                 # package.json aktualisieren falls nötig
+npm run build:all
+```
+
+Kopiert die Distributionsdateien aus `node_modules/maplibre-gl/dist/` und `node_modules/pmtiles/dist/` nach `assets/maplibre/` und baut anschließend alle eigenen Assets.
+
+### Watch-Modus (Entwicklung)
+
+```bash
+cd build
+npm run watch
+```
+
+Überwacht alle Quelldateien in `assets/build/` und kompiliert auf Änderungen sofort neu. Im Watch-Modus werden zusätzlich Source Maps (`.map`) generiert — sie sind per `.gitignore` ausgeschlossen und landen nicht im Repository.
+
+### Release
+
+Releases werden automatisch per GitHub Actions erstellt, wenn ein Tag (`v*.*.*`) gepusht wird:
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+Der Workflow (`release.yml`) installiert npm-Abhängigkeiten, baut alle Assets (`npm run build:all`) und erstellt ein Release-ZIP **ohne** den `build/`-Ordner, `node_modules`, `.map`-Dateien und andere Dev-Artefakte.
+
+---
+
 ## Credits
 
 - **[MapLibre GL JS](https://maplibre.org/)** – Open-Source-Kartenbibliothek (BSD-2-Clause)

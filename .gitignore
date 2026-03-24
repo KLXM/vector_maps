@@ -1,0 +1,15 @@
+# Build-Abhängigkeiten – nicht einchecken
+build/node_modules/
+build/package-lock.json
+
+# Source Maps (nur im Watch-Modus generiert, nicht für Releases)
+assets/**/*.map
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

@@ -75,9 +75,13 @@ if (!rex::isBackend()) {
     /** @var rex_addon $addon */
     $addon = rex_addon::get('vector_maps');
     if ((int) $addon->getConfig('load_frontend', 1) === 1) {
+        // Im Frontend minifizierte Versionen bevorzugen (*.min.js / *.min.css)
         $vmFe = static function(string $rel) use ($addon): string {
-            $path = rex_path::addonAssets('vector_maps', $rel);
-            return $addon->getAssetsUrl($rel) . '?v=' . (file_exists($path) ? filemtime($path) : 0);
+            $minRel  = (string) preg_replace('/\.(js|css)$/', '.min.$1', $rel);
+            $minPath = rex_path::addonAssets('vector_maps', $minRel);
+            $useRel  = file_exists($minPath) ? $minRel : $rel;
+            $path    = rex_path::addonAssets('vector_maps', $useRel);
+            return $addon->getAssetsUrl($useRel) . '?v=' . (file_exists($path) ? filemtime($path) : 0);
         };
 
         rex_extension::register('OUTPUT_FILTER', static function(\rex_extension_point $ep) use ($vmFe): void {

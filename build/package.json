@@ -1,0 +1,17 @@
+{
+    "name": "vector-maps-build",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Build tooling for the vector_maps REDAXO addon",
+    "scripts": {
+        "build": "node build.mjs",
+        "update-vendor": "node build.mjs --update-vendor",
+        "build:all": "node build.mjs --update-vendor"
+    },
+    "devDependencies": {
+        "esbuild": "^0.25.1",
+        "maplibre-gl": "^5.2.0",
+        "pmtiles": "^3.2.1"
+    }
+}

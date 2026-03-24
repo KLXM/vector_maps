@@ -334,9 +334,6 @@ body.rex-theme-dark .vm-route-badge {
     color: #e0e0e0;
 }
 
-    color: #e0e0e0;
-}
-
 @media (prefers-color-scheme: dark) {
     body.rex-has-theme:not(.rex-theme-light) .vm-route-badge {
         background: rgba(24, 24, 24, .95);
