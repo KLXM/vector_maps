@@ -1703,6 +1703,7 @@ function vmAddRoutePanel(el, map) {
 
     // Nur Ziel bekannt → Adresse geocodieren, Marker + Kartenzentrierung
     if (!initFrom && initTo) {
+        const customPopup = el.getAttribute('route-to-popup') || null;
         const showDestination = async () => {
             try {
                 const [lat, lng, label] = await vmResolveLocation(initTo);
@@ -1712,10 +1713,10 @@ function vmAddRoutePanel(el, map) {
                     .addTo(map);
                 if (!el._vmRouteMarkers) el._vmRouteMarkers = [];
                 el._vmRouteMarkers.push(destMarker);
-                // Popup mit Zieladresse anzeigen
+                const popupHtml = customPopup || ('<strong>' + label + '</strong>');
                 new maplibregl.Popup({ offset: 25, closeOnClick: false })
                     .setLngLat([lng, lat])
-                    .setHTML('<strong>' + label + '</strong>')
+                    .setHTML(popupHtml)
                     .addTo(map);
             } catch (_) {}
         };

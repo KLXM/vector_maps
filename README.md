@@ -197,6 +197,7 @@ Routen zwischen zwei Punkten berechnen – sowohl mit Koordinaten als auch mit A
 | `route-mode` | `driving` | `route-mode="walking"` | Routing-Profil: `driving`, `walking`, `cycling` |
 | `route-panel` | `false` | `route-panel` | Interaktives Von/Nach-Panel auf der Karte einblenden |
 | `route-to-locked` | `false` | `route-to-locked` | Zieladresse im Panel fixieren – nicht editierbar, kein Autocomplete |
+| `route-to-popup` | – | `route-to-popup="Firmenname<br>firmenname.de"` | Eigener Popup-Inhalt (HTML) am Ziel-Marker, wenn nur `route-to` gesetzt ist |
 | `route-no-steps` | `false` | `route-no-steps` | Abbiegehinweise (Turn-by-Turn) im Panel ausblenden |
 
 ### Interaktives Routenpanel (`route-panel`)
@@ -229,6 +230,23 @@ Wenn das Ziel fest vorgegeben ist (z.B. ein Firmenstandort), kann das Zielfeld e
 ```
 
 > Mit `route-no-steps` wird nur der berechnete Weg auf der Karte angezeigt — ohne Schritt-für-Schritt-Abbiegehinweise darunter. Ideal für Anfahrtskarten auf Kontaktseiten.
+
+### Anfahrtskarte mit Firmen-Marker (`route-to-popup`)
+
+Wenn nur `route-to` gesetzt ist (kein `route-from`), wird das Ziel automatisch geocodiert, ein Marker gesetzt und die Karte zentriert. Mit `route-to-popup` kann der Popup-Inhalt des Markers frei definiert werden:
+
+```html
+<vectormap
+    height="500px"
+    route-panel
+    route-to="Am Schürmannshütt 40g, 47441 Moers"
+    route-to-popup="<strong>KLXM Crossmedia GmbH</strong><br>klxm.de"
+    route-to-locked
+    route-mode="driving">
+</vectormap>
+```
+
+Der Nutzer sieht sofort den Ziel-Marker mit Popup. Sobald er seine Startadresse eingibt, wird die Route berechnet.
 
 ---
 
