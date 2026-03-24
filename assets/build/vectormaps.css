@@ -208,6 +208,18 @@ vectormap.vm-initialized::before {
     display: none;
 }
 
+/* Theme-Fade-in: Karte unsichtbar bis Theme angewendet (verhindert Flash of Unstyled Map) */
+vector-map.vm-has-theme:not(.vm-theme-ready),
+vectormap.vm-has-theme:not(.vm-theme-ready) {
+    opacity: 0;
+}
+
+vector-map.vm-theme-ready,
+vectormap.vm-theme-ready {
+    opacity: 1;
+    transition: opacity 0.35s ease;
+}
+
 @keyframes vm-shimmer {
     0%   { background-position: 0% 50%; }
     50%  { background-position: 100% 50%; }

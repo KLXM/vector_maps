@@ -872,9 +872,14 @@ async function vmLoadAndApplyTheme(map, themeName) {
     // Farben speichern BEVOR vmApplyTheme, damit styledata-Handler sie wiederherstellen kann
     map._vmThemeColors = colors;
     vmApplyTheme(map, colors);
+    // Karte einblenden (war via vm-has-theme unsichtbar bis Theme geladen)
+    if (map._vmEl) map._vmEl.classList.add('vm-theme-ready');
     // Safety-Net: beim idle-Event nochmals anwenden falls Tiles-Ladevorgang
     // die Anwendung verzoegert hat (Race Condition mit isStyleLoaded())
-    map.once('idle', () => { if (map._vmThemeColors) vmApplyTheme(map, map._vmThemeColors); });
+    map.once('idle', () => {
+        if (map._vmThemeColors) vmApplyTheme(map, map._vmThemeColors);
+        if (map._vmEl) map._vmEl.classList.add('vm-theme-ready');
+    });
 }
 
 /**
@@ -1051,7 +1056,13 @@ function vmBuildMap(el) {
     });
 
     el._vmMap = map;
+    map._vmEl = el;  // Rueckwaerts-Referenz fuer Theme-Fade-in
     vmRegisterMap(map);
+
+    // Karte erst einblenden wenn Theme angewendet wurde (verhindert Flash of Unstyled Map)
+    if (activeTheme && !isRaster) {
+        el.classList.add('vm-has-theme');
+    }
 
     // Fehlende Sprite-Icons stumm ignorieren (verhindert Console-Spam)
     map.on('styleimagemissing', (e) => {
