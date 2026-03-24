@@ -1685,6 +1685,8 @@ function vmAddRoutePanel(el, map) {
         const stepsDiv = panel.querySelector('.vm-rp-steps');
         if (stepsDiv) stepsDiv.remove();
         clearBtn.style.display = 'none';
+        // Bei gesperrtem Ziel: Ziel-Marker + Popup wiederherstellen
+        if (toLocked && initTo) showDestination();
     });
 
     // Auto-Berechnung wenn initiale Werte vorhanden
@@ -1708,16 +1710,16 @@ function vmAddRoutePanel(el, map) {
             try {
                 const [lat, lng, label] = await vmResolveLocation(initTo);
                 map.flyTo({ center: [lng, lat], zoom: 14, duration: 0 });
+                const popupHtml = customPopup || ('<strong>' + label + '</strong>');
+                const destPopup = new maplibregl.Popup({ offset: 25, closeOnClick: false })
+                    .setHTML(popupHtml);
                 const destMarker = new maplibregl.Marker({ color: '#e74c3c' })
                     .setLngLat([lng, lat])
+                    .setPopup(destPopup)
                     .addTo(map);
+                destMarker.togglePopup(); // Popup sofort öffnen
                 if (!el._vmRouteMarkers) el._vmRouteMarkers = [];
                 el._vmRouteMarkers.push(destMarker);
-                const popupHtml = customPopup || ('<strong>' + label + '</strong>');
-                new maplibregl.Popup({ offset: 25, closeOnClick: false })
-                    .setLngLat([lng, lat])
-                    .setHTML(popupHtml)
-                    .addTo(map);
             } catch (_) {}
         };
         if (map.isStyleLoaded()) {
