@@ -485,9 +485,35 @@ body.rex-theme-dark .vm-route-badge {
 }
 
 .vm-rp-mode.active {
-    background: #2b7095;
-    border-color: #2b7095;
+    background: #1a1a1a;
+    border-color: #1a1a1a;
+    color: #fff;
     filter: none;
+}
+
+/* Standort-Button neben dem Von-Feld */
+.vm-rp-locate {
+    flex-shrink: 0;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px 6px;
+    cursor: pointer;
+    line-height: 1;
+    color: #444;
+    transition: background .15s, border-color .15s, color .15s;
+}
+.vm-rp-locate:hover {
+    background: #e4f0fa;
+    border-color: #2b7095;
+    color: #2b7095;
+}
+.vm-rp-locate.locating {
+    animation: vm-rp-pulse .8s ease infinite alternate;
+}
+@keyframes vm-rp-pulse {
+    from { opacity: 1; }
+    to   { opacity: .4; }
 }
 
 .vm-rp-calc {

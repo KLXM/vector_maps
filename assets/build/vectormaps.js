@@ -1576,6 +1576,10 @@ function vmAddRoutePanel(el, map) {
     const initMode  = el.getAttribute('route-mode') || 'driving';
     const toLocked  = el.hasAttribute('route-to-locked');
     const noSteps   = el.hasAttribute('route-no-steps');
+    const hasLocate = 'geolocation' in navigator;
+
+    // Locate-Button SVG (Crosshair)
+    const locateSvg = `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' width='16' height='16' aria-hidden='true'><circle cx='12' cy='12' r='3'/><line x1='12' y1='2' x2='12' y2='6'/><line x1='12' y1='18' x2='12' y2='22'/><line x1='2' y1='12' x2='6' y2='12'/><line x1='18' y1='12' x2='22' y2='12'/></svg>`;
 
     const panel = document.createElement('div');
     panel.className = 'vm-route-panel';
@@ -1588,6 +1592,7 @@ function vmAddRoutePanel(el, map) {
                     value="${initFrom.replace(/"/g, '&quot;')}">
                 <div class="vm-rp-suggestions"></div>
             </div>
+            ${hasLocate ? `<button type="button" class="vm-rp-locate" title="Meinen Standort verwenden">${locateSvg}</button>` : ''}
         </div>
         <div class="vm-rp-field">
             <span class="vm-rp-label">Nach</span>
@@ -1615,7 +1620,24 @@ function vmAddRoutePanel(el, map) {
     const toInput   = panel.querySelector('.vm-rp-to');
     const calcBtn   = panel.querySelector('.vm-rp-calc');
     const clearBtn  = panel.querySelector('.vm-rp-clear');
+    const locateBtn = panel.querySelector('.vm-rp-locate');
     let currentMode = initMode;
+
+    // Standort-Button: GPS-Koordinaten in Von-Feld eintragen
+    if (locateBtn) {
+        locateBtn.addEventListener('click', () => {
+            locateBtn.classList.add('locating');
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    locateBtn.classList.remove('locating');
+                    const { latitude, longitude } = pos.coords;
+                    fromInput.value = latitude.toFixed(6) + ',' + longitude.toFixed(6);
+                },
+                () => { locateBtn.classList.remove('locating'); },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        });
+    }
 
     // gesperrtes Ziel-Feld visuell kennzeichnen
     if (toLocked) {
