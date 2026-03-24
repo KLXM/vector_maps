@@ -15,12 +15,12 @@ if ('clear_cache' === $func) {
 
 // Einstellungen speichern
 if ('save' === $func && rex::getUser()->isAdmin()) {
-    $loadFrontend = rex_post('load_frontend', 'int', 1) === 1;
+    $loadFrontend = rex_post('load_frontend', 'int', 1);
     $addon->setConfig('load_frontend', $loadFrontend);
     echo rex_view::success($addon->i18n('settings_saved'));
 }
 
-$loadFrontend = (bool) $addon->getConfig('load_frontend', true);
+$loadFrontend = (int) $addon->getConfig('load_frontend', 1);
 
 // --- Einstellungsformular ---
 $formContent = '
@@ -32,12 +32,10 @@ $formContent = '
         <div class="rex-form-group form-group">
             <label class="control-label col-sm-3">' . $addon->i18n('load_frontend_label') . '</label>
             <div class="col-sm-9">
-                <div class="toggle-switch">
-                    <label>
-                        <input type="checkbox" name="load_frontend" value="1"' . ($loadFrontend ? ' checked' : '') . '>
-                        <span class="toggle-switch-slider"></span>
-                    </label>
-                </div>
+                <select name="load_frontend" class="form-control selectpicker">
+                    <option value="1"' . ($loadFrontend === 1 ? ' selected' : '') . '>' . $addon->i18n('load_frontend_yes') . '</option>
+                    <option value="0"' . ($loadFrontend === 0 ? ' selected' : '') . '>' . $addon->i18n('load_frontend_no') . '</option>
+                </select>
                 <p class="help-block">' . $addon->i18n('load_frontend_notice') . '</p>
             </div>
         </div>

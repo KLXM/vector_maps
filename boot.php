@@ -70,20 +70,33 @@ if (rex::isBackend() && rex::getUser()) {
 }
 
 // Frontend: Assets für <vector-map> / <vectormap> Custom Element laden
-// Kann in package.yml oder settings.php per 'load_frontend' => false deaktiviert werden
+// Kann in den Einstellungen per 'load_frontend' => 0 deaktiviert werden
 if (!rex::isBackend()) {
     /** @var rex_addon $addon */
     $addon = rex_addon::get('vector_maps');
-    if ((bool) $addon->getConfig('load_frontend', true)) {
-        // filemtime-Cache-Busting: Browser lädt neue Version sobald Datei geändert wird
+    if ((int) $addon->getConfig('load_frontend', 1) === 1) {
         $vmFe = static function(string $rel) use ($addon): string {
             $path = rex_path::addonAssets('vector_maps', $rel);
             return $addon->getAssetsUrl($rel) . '?v=' . (file_exists($path) ? filemtime($path) : 0);
         };
-        rex_view::addCssFile($vmFe('maplibre/maplibre-gl.css'));
-        rex_view::addCssFile($vmFe('build/vectormaps.css'));
-        rex_view::addJsFile($vmFe('maplibre/maplibre-gl.js'), ['defer' => true]);
-        rex_view::addJsFile($vmFe('build/vectormaps.js'), ['defer' => true]);
+
+        rex_extension::register('OUTPUT_FILTER', static function(\rex_extension_point $ep) use ($vmFe): void {
+            $subject = $ep->getSubject();
+            if (!str_contains($subject, '</head>') && !str_contains($subject, '</body>')) {
+                return;
+            }
+            $css = '<link rel="stylesheet" href="' . $vmFe('maplibre/maplibre-gl.css') . "\">
+"
+                 . '<link rel="stylesheet" href="' . $vmFe('build/vectormaps.css') . "\">
+";
+            $js  = '<script defer src="' . $vmFe('maplibre/maplibre-gl.js') . "\"></script>
+"
+                 . '<script defer src="' . $vmFe('build/vectormaps.js') . "\"></script>
+";
+            $subject = str_replace('</head>', $css . '</head>', $subject);
+            $subject = str_replace('</body>', $js . '</body>', $subject);
+            $ep->setSubject($subject);
+        });
     }
 }
 

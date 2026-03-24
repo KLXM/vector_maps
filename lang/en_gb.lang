@@ -4,6 +4,8 @@ vector_maps_themes = Themes
 
 vector_maps_settings_frontend_heading = Frontend Integration
 vector_maps_load_frontend_label = Automatically load assets in frontend
+vector_maps_load_frontend_yes = Yes – include assets automatically
+vector_maps_load_frontend_no = No – include manually
 vector_maps_load_frontend_notice = When enabled, MapLibre GL JS and Vector Maps styles are automatically included on every frontend page. Disable if you want to include the assets manually in your template.
 vector_maps_settings_saved = Settings saved.
 vector_maps_settings_save = Save settings

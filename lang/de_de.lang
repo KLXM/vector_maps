@@ -10,6 +10,8 @@ vector_maps_clear_cache = Tile-Cache leeren
 
 vector_maps_settings_frontend_heading = Frontend-Einbindung
 vector_maps_load_frontend_label = Assets automatisch im Frontend laden
+vector_maps_load_frontend_yes = Ja – Assets automatisch einbinden
+vector_maps_load_frontend_no = Nein – manuell einbinden
 vector_maps_load_frontend_notice = Wenn aktiv, werden MapLibre GL JS und die Vector-Maps-Styles automatisch in jede Frontend-Seite eingebunden. Deaktivieren, wenn die Assets manuell im Template eingebunden werden sollen.
 vector_maps_settings_saved = Einstellungen gespeichert.
 vector_maps_settings_save = Einstellungen speichern
