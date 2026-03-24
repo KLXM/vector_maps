@@ -84,7 +84,7 @@ if (!rex::isBackend()) {
             return $addon->getAssetsUrl($useRel) . '?v=' . (file_exists($path) ? filemtime($path) : 0);
         };
 
-        rex_extension::register('OUTPUT_FILTER', static function(\rex_extension_point $ep) use ($vmFe): void {
+        \rex_extension::register('OUTPUT_FILTER', static function(\rex_extension_point $ep) use ($vmFe): void {
             $subject = $ep->getSubject();
             // Assets nur einbinden wenn eine Karte auf der Seite vorhanden ist
             if (!str_contains($subject, '<vector-map') && !str_contains($subject, '<vectormap')) {
