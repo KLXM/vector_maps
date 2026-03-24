@@ -743,8 +743,11 @@ function vmTransformRequest(url) {
  * @param {Object} colors  — { land, water, green, road_major, road_minor, building, label, label_halo, road_label }
  */
 function vmApplyTheme(map, colors) {
-    if (!colors || !map.isStyleLoaded()) return;
-    const layers = map.getStyle().layers;
+    if (!colors) return;
+    // isStyleLoaded() prueft auch ob Tiles geladen sind -> gibt false waehrend Tiles streamen.
+    // Wir brauchen nur die Layer-Definitionen (Style-JSON), nicht geladene Tiles.
+    const layers = map.getStyle()?.layers;
+    if (!layers || !layers.length) return;
     // Halo-Breite: numerischer Wert oder null (→ Stil-Standard beibehalten)
     const haloWidth = colors.halo_width !== undefined ? parseFloat(colors.halo_width) : null;
     // Outline/Casing-Overrides: nur anwenden wenn customize_outlines nicht explizit false
@@ -866,8 +869,12 @@ async function vmLoadAndApplyTheme(map, themeName) {
             return;
         }
     }
-    vmApplyTheme(map, colors);
+    // Farben speichern BEVOR vmApplyTheme, damit styledata-Handler sie wiederherstellen kann
     map._vmThemeColors = colors;
+    vmApplyTheme(map, colors);
+    // Safety-Net: beim idle-Event nochmals anwenden falls Tiles-Ladevorgang
+    // die Anwendung verzoegert hat (Race Condition mit isStyleLoaded())
+    map.once('idle', () => { if (map._vmThemeColors) vmApplyTheme(map, map._vmThemeColors); });
 }
 
 /**
@@ -1138,11 +1145,17 @@ function vmBuildMap(el) {
         });
     }
 
-    // styledata: NUR 3D-Gebäude (idempotent durch getLayer-Check)
-    // setLanguage + vmApplyTheme auslösen selbst styledata-Events — NICHT hier aufrufen!
+    // styledata: 3D-Gebäude + Theme-Wiederherstellung (z.B. nach Satellit-Toggle)
+    // Debounce-Flag verhindert Endlosschleife: setPaintProperty feuert selbst styledata
     map.on('styledata', () => {
-        if (!map.isStyleLoaded()) return;
+        if (!map.isStyleLoaded() || map._vmApplyingTheme) return;
         if (has3d && !isRaster) vmAdd3dBuildings(map);
+        if (map._vmThemeColors && !isRaster) {
+            map._vmApplyingTheme = true;
+            vmApplyTheme(map, map._vmThemeColors);
+            // Asynchron zuruecksetzen: styledata aus setPaintProperty kommt via rAF
+            requestAnimationFrame(() => { map._vmApplyingTheme = false; });
+        }
     });
 
     // Sprache über JS-API änderbar machen
