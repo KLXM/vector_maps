@@ -1700,6 +1700,31 @@ function vmAddRoutePanel(el, map) {
             map.once('load', autoCalc);
         }
     }
+
+    // Nur Ziel bekannt → Adresse geocodieren, Marker + Kartenzentrierung
+    if (!initFrom && initTo) {
+        const showDestination = async () => {
+            try {
+                const [lat, lng, label] = await vmResolveLocation(initTo);
+                map.flyTo({ center: [lng, lat], zoom: 14, duration: 0 });
+                const destMarker = new maplibregl.Marker({ color: '#e74c3c' })
+                    .setLngLat([lng, lat])
+                    .addTo(map);
+                if (!el._vmRouteMarkers) el._vmRouteMarkers = [];
+                el._vmRouteMarkers.push(destMarker);
+                // Popup mit Zieladresse anzeigen
+                new maplibregl.Popup({ offset: 25, closeOnClick: false })
+                    .setLngLat([lng, lat])
+                    .setHTML('<strong>' + label + '</strong>')
+                    .addTo(map);
+            } catch (_) {}
+        };
+        if (map.isStyleLoaded()) {
+            showDestination();
+        } else {
+            map.once('load', showDestination);
+        }
+    }
 }
 
 function vmAddLocateButton(el, map) {
