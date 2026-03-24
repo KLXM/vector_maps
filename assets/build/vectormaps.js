@@ -1062,6 +1062,9 @@ function vmBuildMap(el) {
     // Karte erst einblenden wenn Theme angewendet wurde (verhindert Flash of Unstyled Map)
     if (activeTheme && !isRaster) {
         el.classList.add('vm-has-theme');
+        // Einblend-Dauer per Attribut steuerbar: theme-transition="600" (ms), Default 350
+        const tranMs = parseInt(el.getAttribute('theme-transition') || '350', 10);
+        el.style.setProperty('--vm-theme-transition', (tranMs / 1000).toFixed(2) + 's');
     }
 
     // Fehlende Sprite-Icons stumm ignorieren (verhindert Console-Spam)

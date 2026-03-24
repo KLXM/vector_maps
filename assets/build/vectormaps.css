@@ -217,7 +217,7 @@ vectormap.vm-has-theme:not(.vm-theme-ready) {
 vector-map.vm-theme-ready,
 vectormap.vm-theme-ready {
     opacity: 1;
-    transition: opacity 0.35s ease;
+    transition: opacity var(--vm-theme-transition, 0.35s) ease;
 }
 
 @keyframes vm-shimmer {
