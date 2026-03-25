@@ -21,6 +21,7 @@
         label:       'Beschriftung',
         label_halo:  'Beschriftungs-Halo',
         road_label:  'Straßen-Nummern (Text)',
+        route_line:  'Routing-Linie',
     };
 
     /** Standard-Farben (OpenFreeMap Liberty-Näherungswerte) */
@@ -38,6 +39,7 @@
         label:       '#333333',
         label_halo:  '#ffffff',
         road_label:  '#333333',
+        route_line:  '#2b7095',
     };
 
     let previewMap = null;

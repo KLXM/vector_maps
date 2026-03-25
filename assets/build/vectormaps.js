@@ -645,6 +645,7 @@ const VM_BUILT_IN_THEMES = {
             label:             '#b8c8d8',
             label_halo:        '#16161d',
             road_label:        '#c8d8e8',
+            route_line:        '#4a9cc8',
             customize_outlines: true,
         },
     },
@@ -664,6 +665,7 @@ const VM_BUILT_IN_THEMES = {
             label:             '#3c2c18',
             label_halo:        '#f4ead6',
             road_label:        '#3c2c18',
+            route_line:        '#c05820',
             customize_outlines: true,
         },
     },
@@ -683,6 +685,7 @@ const VM_BUILT_IN_THEMES = {
             label:             '#282828',
             label_halo:        '#ffffff',
             road_label:        '#222222',
+            route_line:        '#444444',
             customize_outlines: true,
         },
     },
@@ -756,7 +759,10 @@ function vmApplyTheme(map, colors) {
         const type = layer.type;
         const sl   = layer['source-layer'] || '';
         try {
-            if (type === 'background') {
+            // Eigene Route-Layer (dynamisch via vmAddRoutePanel hinzugefügt)
+            if (layer.id === 'vm-route-line') {
+                if (colors.route_line) map.setPaintProperty(layer.id, 'line-color', colors.route_line);
+            } else if (type === 'background') {
                 map.setPaintProperty(layer.id, 'background-color', colors.land);
             } else if (type === 'symbol') {
                 // transportation_name-Layer (Straßen-/Autobahnbeschriftungen): road_label statt label
@@ -1526,7 +1532,7 @@ async function vmDrawRoute(el, map, fromStr, toStr, mode) {
         });
         map.addLayer({ id: 'vm-route-line', type: 'line', source: 'vm-route',
             layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint:  { 'line-color': '#2b7095', 'line-width': 4, 'line-opacity': 0.95 },
+            paint:  { 'line-color': map._vmThemeColors?.route_line || '#2b7095', 'line-width': 4, 'line-opacity': 0.95 },
         });
         el._vmRouteLayers  = ['vm-route-casing', 'vm-route-line'];
         el._vmRouteSources = ['vm-route'];

@@ -45,6 +45,7 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
                     'label'       => 'Beschriftung',
                     'label_halo'  => 'Beschriftungs-Halo',
                     'road_label'  => 'Straßen-Nummern (Text)',
+                    'route_line'  => 'Routing-Linie',
                 ];
                 $colorFieldsOutline = [
                     'road_casing' => 'Straßen-Outline (Casing)',
