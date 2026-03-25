@@ -20,6 +20,7 @@ class ThemeManager
         'road_major', 'road_minor', 'road_casing', 'rail',
         'building', 'outline',
         'label', 'label_halo', 'road_label',
+        'route_line',
     ];
 
     /**
