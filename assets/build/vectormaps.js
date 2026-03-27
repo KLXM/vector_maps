@@ -734,6 +734,8 @@ function vmTransformRequest(url) {
         'tile.openstreetmap.org/',
         'router.project-osrm.org/',
         'overpass-api.de/',
+        'server.arcgisonline.com/',
+        'services.arcgisonline.com/',
     ];
     if (proxied.some(h => url.includes(h))) return { url: vmProxyUrl(url) };
     return { url };
