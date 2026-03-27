@@ -2,6 +2,9 @@
 
 namespace KLXM\VectorMaps;
 
+use rex_addon;
+use rex_extension;
+use rex_extension_point;
 use rex_file;
 use rex_path;
 use rex_request;
@@ -75,7 +78,27 @@ class Proxy
             'https://api.brightsky.dev/',
             // Open-Meteo – weltweite Wettervorhersage (kostenlos, kein API-Key, Open-Source)
             'https://api.open-meteo.com/',
+            // Esri ArcGIS Online – Satellitenbilder (World Imagery)
+            'https://server.arcgisonline.com/',
+            'https://services.arcgisonline.com/',
         ];
+
+        // Manuell konfigurierte Domains aus den Einstellungen
+        $configDomains = rex_addon::get('vector_maps')->getConfig('proxy_extra_domains', []);
+        if (is_array($configDomains) && !empty($configDomains)) {
+            $allowedDomains = array_merge($allowedDomains, $configDomains);
+        }
+
+        // Extension Point: andere AddOns können weitere Domains hinzufügen
+        // Beispiel: rex_extension::register('VECTOR_MAPS_PROXY_DOMAINS', function($ep) {
+        //     $list = $ep->getSubject();
+        //     $list[] = 'https://my-tiles.example.com/';
+        //     return $list;
+        // });
+        $allowedDomains = rex_extension::registerPoint(new rex_extension_point(
+            'VECTOR_MAPS_PROXY_DOMAINS',
+            $allowedDomains
+        ));
 
         $isAllowed = false;
         foreach ($allowedDomains as $domain) {

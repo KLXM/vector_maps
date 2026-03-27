@@ -16,6 +16,10 @@ vector_maps_load_frontend_notice = Wenn aktiv, werden MapLibre GL JS und die Vec
 vector_maps_settings_saved = Einstellungen gespeichert.
 vector_maps_settings_save = Einstellungen speichern
 
+vector_maps_proxy_domains_heading = Proxy: Zusätzliche erlaubte Domains
+vector_maps_proxy_domains_label = Erlaubte Proxy-URLs
+vector_maps_proxy_domains_notice = Eine URL-Basis pro Zeile (z.B. https://my-tiles.example.com/). Nur https:// und http:// werden akzeptiert. Leerzeilen und Kommentare (#) werden ignoriert. Diese Einträge ergänzen die fest eingebaute Whitelist. Andere AddOns können per Extension Point VECTOR_MAPS_PROXY_DOMAINS ebenfalls Domains hinzufügen.
+
 vector_maps_readme = README
 vector_maps_picker_button = Map Picker öffnen
 vector_maps_search_placeholder = Adresse suchen...

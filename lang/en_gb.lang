@@ -11,6 +11,10 @@ vector_maps_settings_saved = Settings saved.
 vector_maps_settings_save = Save settings
 
 # Frontend / JS Picker
+vector_maps_proxy_domains_heading = Proxy: Additional allowed domains
+vector_maps_proxy_domains_label = Allowed proxy URLs
+vector_maps_proxy_domains_notice = One URL prefix per line (e.g. https://my-tiles.example.com/). Only https:// and http:// are accepted. Empty lines and comments (#) are ignored. These entries extend the built-in whitelist. Other addons can also add domains via the VECTOR_MAPS_PROXY_DOMAINS extension point.
+
 vector_maps_readme = README
 vector_maps_picker_button = Open Map Picker
 vector_maps_search_placeholder = Search address...

@@ -17,10 +17,33 @@ if ('clear_cache' === $func) {
 if ('save' === $func && rex::getUser()->isAdmin()) {
     $loadFrontend = rex_post('load_frontend', 'int', 1);
     $addon->setConfig('load_frontend', $loadFrontend);
+
+    // Proxy-Domains: Zeilenweise aus Textarea, bereinigen + validieren
+    $rawDomains = rex_post('proxy_extra_domains', 'string', '');
+    $extraDomains = [];
+    foreach (preg_split('/\r?\n/', $rawDomains) as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+        // Muss https:// oder http:// beginnen
+        if (!preg_match('#^https?://#i', $line)) {
+            continue;
+        }
+        // Trailing-Slash sicherstellen
+        if (!str_ends_with($line, '/')) {
+            $line .= '/';
+        }
+        $extraDomains[] = $line;
+    }
+    $addon->setConfig('proxy_extra_domains', $extraDomains);
+
     echo rex_view::success($addon->i18n('settings_saved'));
 }
 
 $loadFrontend = (int) $addon->getConfig('load_frontend', 1);
+$extraDomains = (array) $addon->getConfig('proxy_extra_domains', []);
+$extraDomainsText = implode("\n", $extraDomains);
 
 // --- Einstellungsformular ---
 $formContent = '
@@ -37,6 +60,22 @@ $formContent = '
                     <option value="0"' . ($loadFrontend === 0 ? ' selected' : '') . '>' . $addon->i18n('load_frontend_no') . '</option>
                 </select>
                 <p class="help-block">' . $addon->i18n('load_frontend_notice') . '</p>
+            </div>
+        </div>
+
+    </fieldset>
+
+    <fieldset>
+        <legend>' . $addon->i18n('proxy_domains_heading') . '</legend>
+
+        <div class="rex-form-group form-group">
+            <label class="control-label col-sm-3" for="vm-proxy-extra-domains">' . $addon->i18n('proxy_domains_label') . '</label>
+            <div class="col-sm-9">
+                <textarea name="proxy_extra_domains" id="vm-proxy-extra-domains"
+                          class="form-control" rows="6"
+                          placeholder="https://my-tiles.example.com/"
+                          style="font-family:monospace;font-size:12px">' . rex_escape($extraDomainsText) . '</textarea>
+                <p class="help-block">' . $addon->i18n('proxy_domains_notice') . '</p>
             </div>
         </div>
 
