@@ -1,5 +1,9 @@
 vector_maps_title = Vector Maps
 vector_maps_demo = Demo & Test
+vector_maps_demo_overview = Übersicht
+vector_maps_demo_basic = Grundkarten & Routing
+vector_maps_demo_nearby = Umgebungssuche
+vector_maps_demo_advanced = Erweiterte Features
 vector_maps_themes = Themes
 vector_maps_demo_info = Auf dieser Seite kann der Vector Maps Picker und das native 3D-Rendering getestet werden.
 vector_maps_settings = Einstellungen

@@ -16,6 +16,15 @@ page:
       subPath: README.md
     demo:
       title: 'translate:vector_maps_demo'
+      subpages:
+        overview:
+          title: 'translate:vector_maps_demo_overview'
+        basic:
+          title: 'translate:vector_maps_demo_basic'
+        nearby:
+          title: 'translate:vector_maps_demo_nearby'
+        advanced:
+          title: 'translate:vector_maps_demo_advanced'
     themes:
       title: 'translate:vector_maps_themes'
     settings:
