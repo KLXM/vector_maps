@@ -7,22 +7,22 @@ Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, volls
 ## Features
 
 - **Kein API-Key erforderlich** – nutzt [OpenFreeMap](https://openfreemap.org/) (freie Vektorkacheln)
-- **DSGVO-konform** – externer Datenverkehr wird vollständig über einen PHP-Proxy geleitet
+- **DSGVO-konform** – externer Datenverkehr wird vollständig über einen PHP-Proxy geleitet; Whitelist per Extension Point `VECTOR_MAPS_PROXY_DOMAINS` und Backend-Einstellungen erweiterbar
 - **Web Component** `<vectormap>` – direkt im Template oder Modul verwendbar, kein JavaScript nötig
 - **Lazy-Init + Build-Queue** – WebGL-Kontext wird sequentiell für jede Karte aufgebaut, erst wenn sie in den Viewport scrollt (verhindert Browserlimit von ~10 parallelen WebGL-Kontexten)
 - **Backend-Koordinatenpicker** – Koordinatenfelder in REDAXO-Modulen mit Karte und Adresssuche
 - **Routing** – Koordinaten oder Adressen, mit Auto-, Fuß- und Fahrradmodus (OSRM)
-- **Interaktives Routenpanel** – Von/Nach-Adressen direkt auf der Karte eingeben (Autocomplete)
+- **Interaktives Routenpanel** – Von/Nach-Adressen direkt auf der Karte eingeben (Autocomplete); GPS-Locate-Button übernimmt den aktuellen Gerätestandort als Startpunkt
 - **Umgebungssuche (nearby)** – POI-Suche via Overpass API (z. B. Ladestationen, Restaurants)
 - **Dynamisches Datennachladen** – GeoJSON-Source per `moveend` aktualisieren (z. B. Ladestationen live aus OSM)
 - **Freie Wetter-APIs** – Open-Meteo und Bright Sky (DWD) via Proxy, kein API-Key, Badge-Marker mit Live-Daten
 - **Standortsuche** – optionale Geolokalisierung des Nutzers als Ausgangspunkt
-- **Themes** – `dark`, `warm`, `mono` eingebaut, frei erweiterbar via Theme-Editor im Backend; Themes werden per Fetch geladen und erst danach eingeblendet (kein Flash of Unstyled Map)
+- **Themes** – `dark`, `warm`, `mono` eingebaut, frei erweiterbar via Theme-Editor im Backend; Routing-Linienfarbe im Theme-Editor konfigurierbar; Themes werden per Fetch geladen und erst danach eingeblendet (kein Flash of Unstyled Map)
 - **Theme-Fade-in** – Karte blendet sich sanft ein sobald das Theme geladen ist; Dauer per `theme-transition`-Attribut (ms) steuerbar
 - **3D-Gebäude** – aktivierbar per Attribut
 - **Mehrsprachigkeit** – Sprachcode per `language`-Attribut, steuert Kartenbeschriftungen von OpenFreeMap
 - **Cluster** – automatische Marker-Bündelung bei vielen Punkten
-- **Satellitenbild** – ESRI World Imagery als `map-style="satellite"` oder per `show-satellite` Toggle-Button, kein API-Key
+- **Satellitenbild** – ESRI World Imagery als `map-style="satellite"` oder per `show-satellite` Toggle-Button, kein API-Key (Tiles laufen DSGVO-konform über den Proxy)
 - **maxPitch 60°** – Kamerakippung auf 60° begrenzt (verhindert extreme Perspektiven)
 
 ---
@@ -411,7 +411,7 @@ Drei eingebaute Themes stehen sofort zur Verfügung:
 | `warm` | `theme="warm"` | Warmes Orange-/Beigelayout |
 | `mono` | `theme="mono"` | Graustufen-Layout |
 
-Eigene Themes können im Backend unter **Vector Maps → Themes** angelegt und live per Theme-Editor konfiguriert werden.
+Eigene Themes können im Backend unter **Vector Maps → Themes** angelegt und live per Theme-Editor konfiguriert werden. Die **Routing-Linienfarbe** (`route_line`) lässt sich ebenfalls pro Theme einstellen.
 
 ### Theme-Fade-in
 
@@ -678,8 +678,23 @@ Alle externen Dienste werden über den internen PHP-Proxy geleitet, sodass keine
 | [Overpass API](https://overpass-api.de/) | POI-Suche & dynamisches Datennachladen |
 | [Open-Meteo](https://open-meteo.com/) | Weltweite Wettervorhersage (kostenlos, kein API-Key) |
 | [Bright Sky / DWD](https://brightsky.dev/) | Deutsche Wetterdaten (DWD Open Data, Server in DE) |
+| [Esri ArcGIS / World Imagery](https://www.esri.com/) | Satellitenbilder (Raster-Tiles) |
 
 Der Proxy unter `lib/Proxy.php` validiert alle Anfragen gegen eine Whitelist und leitet nur Anfragen an erlaubte Domains weiter. SSRF-Attacks werden durch strikte Domain-Prüfung verhindert.
+
+### Whitelist erweitern
+
+**Per Extension Point** (andere AddOns):
+
+```php
+rex_extension::register('VECTOR_MAPS_PROXY_DOMAINS', static function(rex_extension_point $ep): array {
+    $list = $ep->getSubject();
+    $list[] = 'https://my-tiles.example.com/';
+    return $list;
+});
+```
+
+**Per Backend-Einstellungen** (manuell): Unter **Vector Maps → Einstellungen → Proxy: Zusätzliche erlaubte Domains** können URL-Präfixe (eine pro Zeile) hinterlegt werden.
 
 ---
 
@@ -711,8 +726,8 @@ Der Proxy unter `lib/Proxy.php` validiert alle Anfragen gegen eine Whitelist und
 | Seite | Beschreibung |
 |---|---|
 | **Demo** | Interaktive Übersicht aller Features mit Live-Beispielen |
-| **Themes** | Theme-Editor zum Erstellen und Anpassen benutzerdefinierter Themes |
-| **Einstellungen** | Proxy-Konfiguration, Standard-Koordinaten |
+| **Themes** | Theme-Editor zum Erstellen und Anpassen benutzerdefinierter Themes (inkl. Routing-Linienfarbe) |
+| **Einstellungen** | Frontend-Einbindung, Proxy-Whitelist (manuelle Domains), Tile-Cache verwalten |
 
 ---
 
