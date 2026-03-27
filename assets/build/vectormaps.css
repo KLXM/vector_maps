@@ -128,12 +128,23 @@
     background: #215978;
 }
 
-#vm-locate-btn {
-    background: #3a7d44;
+#vm-locate-btn.locating svg {
+    display: none;
 }
 
-#vm-locate-btn:hover {
-    background: #2d6135;
+#vm-locate-btn.locating::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: vm-locate-spin 0.7s linear infinite;
+}
+
+@keyframes vm-locate-spin {
+    to { transform: rotate(360deg); }
 }
 
 .vm-modal-footer {

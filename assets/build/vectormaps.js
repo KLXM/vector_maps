@@ -354,11 +354,12 @@ class VectorMapPicker {
             alert('Ihr Browser unterstützt keine Geolokalisierung.');
             return;
         }
+        const locateSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>';
         const btn = document.getElementById('vm-locate-btn');
-        if (btn) btn.innerHTML = '...';
+        if (btn) btn.classList.add('locating');
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                if (btn) btn.innerHTML = '<i class="rex-icon rex-icon-crosshairs"></i>';
+                if (btn) { btn.classList.remove('locating'); btn.innerHTML = locateSvg; }
                 const { latitude: lat, longitude: lng } = pos.coords;
                 if (this.map) {
                     this.map.flyTo({ center: [lng, lat], zoom: 15 });
@@ -368,7 +369,7 @@ class VectorMapPicker {
                 }
             },
             () => {
-                if (btn) btn.innerHTML = '<i class="rex-icon rex-icon-crosshairs"></i>';
+                if (btn) { btn.classList.remove('locating'); btn.innerHTML = locateSvg; }
                 alert('Standort konnte nicht ermittelt werden. Bitte Berechtigung im Browser prüfen.');
             },
             { timeout: 8000, maximumAge: 60000 }
