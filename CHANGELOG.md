@@ -5,6 +5,14 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.1.1] – 2026-04-16
+
+### Gefixt
+
+- **MapLibre-Warnungen "Expected value to be of type number, but found null"** – `fill-extrusion`-Layer (3D-Gebäude) verwendeten `['get', 'height']` / `['get', 'min_height']` ohne `null`-Absicherung. OSM-Gebäude ohne Höhendaten liefern `null`, was MapLibres `interpolate`-Expression nicht akzeptiert. Neuer Helper `vmFixExtrusionLayers()` patcht alle `fill-extrusion`-Layer im geladenen Style (inkl. OFM-eigene Layer) mit `['coalesce', ['get', 'height'], 0]` als Fallback. Wird als früher `styledata`-Handler ohne `isStyleLoaded()`-Guard registriert, damit der Fix vor dem ersten Tile-Render greift.
+
+---
+
 ## [1.1.0] – 2026-03-27
 
 ### Hinzugefügt

@@ -411,8 +411,8 @@ class VectorMapPicker {
             'minzoom': 15,
             'paint': {
                 'fill-extrusion-color': '#aaa',
-                'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
-                'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+                'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'height'], 0]],
+                'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'min_height'], 0]],
                 'fill-extrusion-opacity': 0.6
             }
         });
@@ -454,8 +454,8 @@ class VectorMapPicker {
                 'minzoom': 15,
                 'paint': {
                     'fill-extrusion-color': '#aaa',
-                    'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
-                    'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+                    'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'height'], 0]],
+                    'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'min_height'], 0]],
                     'fill-extrusion-opacity': .6
                 }
             });
@@ -464,6 +464,7 @@ class VectorMapPicker {
         map.on('load', () => {
             new maplibregl.Marker({color: "#ff0000"}).setLngLat([10.4515, 51.1656]).addTo(map);
             add3dBuildings();
+            vmFixExtrusionLayers(map);
             // Demo-Karte auf aktuelle Sprache setzen
             vmSetLanguage(map, _demoCurrentLang);
             // Flug nach Mainhattan (Frankfurt Bankenviertel)
@@ -482,6 +483,9 @@ class VectorMapPicker {
         // Nach Stil-Wechsel werden sie stattdessen via map.once('idle', ...) aufgerufen.
         // Auf Satellitenbild gibt es keinen Vektor-Layer → kein 3D möglich.
         const _isSatellite = () => map.isStyleLoaded() && !!map.getSource('satellite');
+        // Früh patchen: sobald Style-Layer verfügbar — OHNE isStyleLoaded()-Guard
+        // verhindert Warnungen beim ersten Tile-Render (bevor load-Event feuert)
+        map.on('styledata', () => { if (!_isSatellite()) vmFixExtrusionLayers(map); });
         map.on('styledata', () => {
             if (!map.isStyleLoaded()) return;
             if (!_isSatellite()) add3dBuildings();
@@ -740,6 +744,47 @@ function vmTransformRequest(url) {
     ];
     if (proxied.some(h => url.includes(h))) return { url: vmProxyUrl(url) };
     return { url };
+}
+
+/**
+ * Ersetzt ['get', prop] (auch tief in Expressions) durch ['coalesce', ['get', prop], 0].
+ * Verhindert MapLibre-Warnungen "Expected value to be of type number, but found null"
+ * when OSM buildings lack height/min_height attributes.
+ * @param {*} expr
+ * @param {string} prop
+ * @returns {*}
+ */
+function vmWrapGetWithCoalesce(expr, prop) {
+    if (!Array.isArray(expr)) return expr;
+    if (expr[0] === 'get' && expr[1] === prop) return ['coalesce', expr, 0];
+    return expr.map(e => vmWrapGetWithCoalesce(e, prop));
+}
+
+/**
+ * Patcht alle fill-extrusion-Layer im geladenen Style (inkl. OFM-eigene)
+ * so dass fehlende height/min_height-Werte mit 0 ersetzt werden.
+ * @param {maplibregl.Map} map
+ */
+function vmFixExtrusionLayers(map) {
+    const layers = map.getStyle()?.layers;
+    if (!layers) return;
+    for (const layer of layers) {
+        if (layer.type !== 'fill-extrusion') continue;
+        try {
+            const h = map.getPaintProperty(layer.id, 'fill-extrusion-height');
+            const b = map.getPaintProperty(layer.id, 'fill-extrusion-base');
+            if (h !== undefined && h !== null) {
+                const patched = vmWrapGetWithCoalesce(h, 'height');
+                if (JSON.stringify(patched) !== JSON.stringify(h))
+                    map.setPaintProperty(layer.id, 'fill-extrusion-height', patched);
+            }
+            if (b !== undefined && b !== null) {
+                const patched = vmWrapGetWithCoalesce(b, 'min_height');
+                if (JSON.stringify(patched) !== JSON.stringify(b))
+                    map.setPaintProperty(layer.id, 'fill-extrusion-base', patched);
+            }
+        } catch (_) {}
+    }
 }
 
 /**
@@ -1108,7 +1153,7 @@ function vmBuildMap(el) {
         const nearbyLocate = el.hasAttribute('nearby-locate');
 
         map.on('load', () => {
-            if (!isRaster) vmSetLanguage(map, lang);
+            if (!isRaster) { vmSetLanguage(map, lang); vmFixExtrusionLayers(map); }
             if (has3d && !isRaster) vmAdd3dBuildings(map);
             vmAddMarkers(el, map);
             vmLoadGeoJson(el, map);
@@ -1123,7 +1168,7 @@ function vmBuildMap(el) {
     } else {
         map.on('load', () => {
             // Sprache setzen (nur bei Vektor-Stilen)
-            if (!isRaster) vmSetLanguage(map, lang);
+            if (!isRaster) { vmSetLanguage(map, lang); vmFixExtrusionLayers(map); }
             if (has3d && !isRaster) vmAdd3dBuildings(map);
             vmAddMarkers(el, map);
             vmLoadGeoJson(el, map);
@@ -1168,6 +1213,9 @@ function vmBuildMap(el) {
         });
     }
 
+    // Früh patchen: sobald Style-Layer verfügbar — OHNE isStyleLoaded()-Guard
+    if (!isRaster) map.on('styledata', () => vmFixExtrusionLayers(map));
+
     // styledata: 3D-Gebäude + Theme-Wiederherstellung (z.B. nach Satellit-Toggle)
     // Debounce-Flag verhindert Endlosschleife: setPaintProperty feuert selbst styledata
     map.on('styledata', () => {
@@ -1202,8 +1250,8 @@ function vmAdd3dBuildings(map) {
         minzoom:       15,
         paint: {
             'fill-extrusion-color':   '#aaa',
-            'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
-            'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+            'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'height'], 0]],
+            'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'min_height'], 0]],
             'fill-extrusion-opacity': 0.6,
         },
     });
@@ -2324,8 +2372,8 @@ function vmStartBerlinOverfly(map) {
             minzoom:        14,
             paint: {
                 'fill-extrusion-color':   '#a8b4c0',
-                'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['get', 'height']],
-                'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['get', 'min_height']],
+                'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['coalesce', ['get', 'height'], 0]],
+                'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['coalesce', ['get', 'min_height'], 0]],
                 'fill-extrusion-opacity': 0.8,
             },
         });
