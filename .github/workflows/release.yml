@@ -1,9 +1,22 @@
-name: Release
+name: Release & Publish
 
 on:
   push:
     tags:
       - 'v*.*.*'
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Welcher Job soll ausgeführt werden?'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - redaxo_publish
 
 permissions:
   contents: write
@@ -11,6 +24,7 @@ permissions:
 jobs:
   release:
     name: Build & Release ZIP
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.job == 'release')
     runs-on: ubuntu-latest
 
     steps:
@@ -51,3 +65,25 @@ jobs:
         with:
           files: ${{ env.ZIP_NAME }}
           generate_release_notes: true
+
+  redaxo_publish:
+    name: Publish to REDAXO.org
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.job == 'redaxo_publish')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - if: hashFiles('composer.json') != ''
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+      - if: hashFiles('composer.json') != ''
+        uses: ramsey/composer-install@v2
+        with:
+          composer-options: "--no-dev"
+      - uses: FriendsOfREDAXO/installer-action@v1
+        with:
+          myredaxo-username: ${{ secrets.MYREDAXO_USERNAME }}
+          myredaxo-api-key: ${{ secrets.MYREDAXO_API_KEY }}
+          description: ${{ github.event.release.body }}
+          version: ${{ github.event.release.tag_name }}
