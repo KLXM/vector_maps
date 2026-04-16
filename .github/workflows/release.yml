@@ -17,6 +17,10 @@ on:
         options:
           - release
           - redaxo_publish
+      version:
+        description: 'Version (nur für redaxo_publish, z.B. v1.1.1)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -86,4 +90,4 @@ jobs:
           myredaxo-username: ${{ secrets.MYREDAXO_USERNAME }}
           myredaxo-api-key: ${{ secrets.MYREDAXO_API_KEY }}
           description: ${{ github.event.release.body }}
-          version: ${{ github.event.release.tag_name }}
+          version: ${{ github.event.release.tag_name || inputs.version }}
