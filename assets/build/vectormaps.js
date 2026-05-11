@@ -483,9 +483,17 @@ class VectorMapPicker {
         // Nach Stil-Wechsel werden sie stattdessen via map.once('idle', ...) aufgerufen.
         // Auf Satellitenbild gibt es keinen Vektor-Layer → kein 3D möglich.
         const _isSatellite = () => map.isStyleLoaded() && !!map.getSource('satellite');
-        // Früh patchen: sobald Style-Layer verfügbar — OHNE isStyleLoaded()-Guard
-        // verhindert Warnungen beim ersten Tile-Render (bevor load-Event feuert)
-        map.on('styledata', () => { if (!_isSatellite()) vmFixExtrusionLayers(map); });
+        // Performance: vmFixExtrusionLayers nur einmal pro Style-Load ausführen.
+        // Bei jedem styledata-Event (während Animationen sehr häufig!) würde die
+        // teure JSON.stringify-Schleife sonst die CPU auslasten. Flag wird bei
+        // 'style.load' zurückgesetzt (z.B. nach Satellit-Toggle / setStyle).
+        let _extrusionPatched = false;
+        map.on('style.load', () => { _extrusionPatched = false; });
+        map.on('styledata', () => {
+            if (_extrusionPatched || _isSatellite() || !map.isStyleLoaded()) return;
+            vmFixExtrusionLayers(map);
+            _extrusionPatched = true;
+        });
         map.on('styledata', () => {
             if (!map.isStyleLoaded()) return;
             if (!_isSatellite()) add3dBuildings();
@@ -1213,8 +1221,19 @@ function vmBuildMap(el) {
         });
     }
 
-    // Früh patchen: sobald Style-Layer verfügbar — OHNE isStyleLoaded()-Guard
-    if (!isRaster) map.on('styledata', () => vmFixExtrusionLayers(map));
+    // Performance: vmFixExtrusionLayers nur einmal pro Style-Load ausführen.
+    // Vorher lief die teure JSON.stringify-Schleife bei JEDEM styledata-Event,
+    // was während flyTo()/Animationen die CPU auslastete und 3D-Gebäude ruckeln
+    // ließ. Flag wird bei 'style.load' zurückgesetzt (z.B. nach Satellit-Toggle).
+    if (!isRaster) {
+        let _extrusionPatched = false;
+        map.on('style.load', () => { _extrusionPatched = false; });
+        map.on('styledata', () => {
+            if (_extrusionPatched || !map.isStyleLoaded()) return;
+            vmFixExtrusionLayers(map);
+            _extrusionPatched = true;
+        });
+    }
 
     // styledata: 3D-Gebäude + Theme-Wiederherstellung (z.B. nach Satellit-Toggle)
     // Debounce-Flag verhindert Endlosschleife: setPaintProperty feuert selbst styledata

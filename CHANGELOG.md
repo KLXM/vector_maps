@@ -5,6 +5,14 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.1.2] – 2026-05-11
+
+### Gefixt
+
+- **Performance-Regression bei 3D-Gebäuden und Kamera-Animationen (`flyTo`)** – der in 1.1.1 eingeführte `vmFixExtrusionLayers()`-Helper wurde auf jedes `styledata`-Event gehängt und bei Animationen sehr häufig ausgeführt. Die enthaltene `JSON.stringify`-Schleife über alle Layer hat den Browser stark ausgelastet und Animationen ruckeln lassen. Der Patch wird jetzt nur noch **einmal pro Style-Load** ausgeführt und bei `style.load` (z.B. nach Satellit-Toggle) sauber resettet. (#1)
+
+---
+
 ## [1.1.1] – 2026-04-16
 
 ### Gefixt
