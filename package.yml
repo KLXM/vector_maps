@@ -1,6 +1,6 @@
 package: vector_maps
 version: '1.1.1'
-author: 'KLXM'
+author: 'KLXM Crossmedia GmbH'
 supportpage: 'https://github.com/KLXM/vector_maps'
 requires:
   php: '>=8.1'
