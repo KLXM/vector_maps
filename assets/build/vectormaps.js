@@ -918,6 +918,7 @@ function vmApplyTheme(map, colors) {
  */
 async function vmLoadAndApplyTheme(map, themeName) {
     let colors;
+    let baseStyle = null;
     if (VM_BUILT_IN_THEMES[themeName]) {
         colors = VM_BUILT_IN_THEMES[themeName].colors;
     } else {
@@ -926,11 +927,28 @@ async function vmLoadAndApplyTheme(map, themeName) {
             if (!resp.ok) { console.warn('<vectormap> Theme nicht gefunden:', themeName); return; }
             const data = await resp.json();
             colors = data.colors;
+            if (typeof data.base_style === 'string') {
+                const candidate = data.base_style.toLowerCase();
+                if (VM_OFM_STYLES.includes(candidate)) baseStyle = candidate;
+            }
         } catch (e) {
             console.warn('<vectormap> Theme-Ladefehler:', e);
             return;
         }
     }
+
+    // Optionaler Basisstil aus Theme-Daten (z. B. bright/positron)
+    if (baseStyle && map._vmBaseStyle !== baseStyle && !map._vmThemeSwitchingStyle) {
+        map._vmThemeSwitchingStyle = true;
+        map._vmBaseStyle = baseStyle;
+        map.setStyle(vmProxyStyleUrl(baseStyle));
+        map.once('idle', () => {
+            map._vmThemeSwitchingStyle = false;
+            vmLoadAndApplyTheme(map, themeName);
+        });
+        return;
+    }
+
     // Farben speichern BEVOR vmApplyTheme, damit styledata-Handler sie wiederherstellen kann
     map._vmThemeColors = colors;
     vmApplyTheme(map, colors);
@@ -1119,6 +1137,7 @@ function vmBuildMap(el) {
 
     el._vmMap = map;
     map._vmEl = el;  // Rueckwaerts-Referenz fuer Theme-Fade-in
+    map._vmBaseStyle = VM_OFM_STYLES.includes(mapStyle) || mapStyle.startsWith('http') ? mapStyle : 'liberty';
     vmRegisterMap(map);
 
     // Karte erst einblenden wenn Theme angewendet wurde (verhindert Flash of Unstyled Map)
@@ -1136,6 +1155,11 @@ function vmBuildMap(el) {
 
     if (!el.hasAttribute('no-navigation')) {
         map.addControl(new maplibregl.NavigationControl());
+    }
+
+    // Optional: Fullscreen-Control
+    if (el.hasAttribute('fullscreen')) {
+        map.addControl(new VMFullscreenControl(), 'top-right');
     }
 
     if (el.hasAttribute('locate')) {
@@ -1919,7 +1943,8 @@ function vmAddSatelliteToggle(el, map, baseStyleName) {
         if (isSat) {
             map.setStyle(VM_SATELLITE_STYLE);
         } else {
-            const vectorStyle = vmProxyStyleUrl(baseStyleName);
+            const styleName = map._vmBaseStyle || baseStyleName || 'liberty';
+            const vectorStyle = vmProxyStyleUrl(styleName);
             map.setStyle(vectorStyle);
             map.once('idle', () => {
                 vmSetLanguage(map, el._vmLang || 'de');
@@ -2558,6 +2583,59 @@ function vmSetupCsDemo(el, map) {
 
     map.on('moveend', loadStations);
     loadStations(); // Sofort laden beim Start
+}
+
+/* ---------- MapLibre GL Controls ---------- */
+
+/**
+ * Fullscreen-Control für MapLibre GL
+ */
+class VMFullscreenControl {
+    onAdd(map) {
+        this.map = map;
+        const container = document.createElement('div');
+        container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+        
+        const btn = document.createElement('button');
+        btn.className = 'maplibregl-ctrl-icon vm-fs-btn';
+        btn.type = 'button';
+        btn.title = 'Vollbild';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>';
+        
+        btn.addEventListener('click', () => this.toggleFullscreen());
+        container.appendChild(btn);
+        
+        this.fullscreenBtn = btn;
+        document.addEventListener('fullscreenchange', () => this.updateButton());
+        
+        return container;
+    }
+    
+    toggleFullscreen() {
+        const mapContainer = this.map.getContainer();
+        
+        if (!document.fullscreenElement) {
+            if (mapContainer.requestFullscreen) {
+                mapContainer.requestFullscreen().catch(err => console.warn('Fullscreen error:', err));
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    updateButton() {
+        if (document.fullscreenElement) {
+            this.fullscreenBtn?.classList.add('vm-fs-active');
+        } else {
+            this.fullscreenBtn?.classList.remove('vm-fs-active');
+        }
+    }
+    
+    onRemove() {
+        // Cleanup
+    }
 }
 
 /* ---------- Custom Element ---------- */

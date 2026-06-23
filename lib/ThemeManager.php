@@ -23,6 +23,9 @@ class ThemeManager
         'route_line',
     ];
 
+    /** Erlaubte OFM-Basisstile für Themes */
+    public const BASE_STYLES = ['liberty', 'bright', 'positron'];
+
     /**
      * Gibt das Themes-Verzeichnis zurück und legt es bei Bedarf an.
      */
@@ -89,7 +92,7 @@ class ThemeManager
      *
      * @param array<string, mixed> $colors
      */
-    public static function saveTheme(string $name, array $colors): bool
+    public static function saveTheme(string $name, array $colors, ?string $baseStyle = null): bool
     {
         $name = self::sanitizeName($name);
         if ($name === '') {
@@ -127,10 +130,19 @@ class ThemeManager
             $validated['customize_outlines'] = ($v === true || $v === 1 || $v === '1' || $v === 'true');
         }
 
+        $normalizedBaseStyle = 'liberty';
+        if (is_string($baseStyle) && $baseStyle !== '') {
+            $candidate = strtolower(trim($baseStyle));
+            if (in_array($candidate, self::BASE_STYLES, true)) {
+                $normalizedBaseStyle = $candidate;
+            }
+        }
+
         $data = [
-            'name'    => $name,
-            'colors'  => $validated,
-            'created' => date('Y-m-d H:i:s'),
+            'name'       => $name,
+            'base_style' => $normalizedBaseStyle,
+            'colors'     => $validated,
+            'created'    => date('Y-m-d H:i:s'),
         ];
 
         return false !== rex_file::put(
@@ -187,6 +199,7 @@ class ThemeManager
         switch ($action) {
             case 'save':
                 $name   = rex_request('vm_theme_name', 'string', '');
+                $baseStyle = rex_request('vm_theme_base_style', 'string', 'liberty');
                 /** @var array<string, string> $colors */
                 $colors = rex_request('vm_theme_colors', 'array', []);
                 // Sicherstellen dass Colors ein flaches String-Array sind
@@ -196,7 +209,7 @@ class ThemeManager
                         $safeColors[$k] = $v;
                     }
                 }
-                $ok = self::saveTheme($name, $safeColors);
+                $ok = self::saveTheme($name, $safeColors, $baseStyle);
                 rex_response::sendJson(['success' => $ok, 'name' => self::sanitizeName($name)]);
                 break;
 
@@ -225,7 +238,11 @@ class ThemeManager
                     exit;
                 }
                 $importName = $nameOverride !== '' ? $nameOverride : ($imported['name'] ?? '');
-                $ok = self::saveTheme($importName, $imported['colors']);
+                $importBaseStyle = '';
+                if (isset($imported['base_style']) && is_string($imported['base_style'])) {
+                    $importBaseStyle = $imported['base_style'];
+                }
+                $ok = self::saveTheme($importName, $imported['colors'], $importBaseStyle);
                 rex_response::sendJson(['success' => $ok, 'name' => self::sanitizeName($importName)]);
                 break;
 

@@ -80,7 +80,7 @@
                 <vectormap center="52.520008,13.404954" zoom="12" height="280"></vectormap>
             </div>
             <div class="col-md-6">
-                <h4 style="margin-top:0">2. 3D + Standort-Button</h4>
+                <h4 style="margin-top:0">2. 3D + Standort-Button + Vollbild</h4>
                 <pre style="font-size:12px">&lt;vectormap
     center="50.110924,8.682127"
     zoom="15"
@@ -88,9 +88,10 @@
     bearing="30"
     height="280"
     3d
+    fullscreen
     locate&gt;
 &lt;/vectormap&gt;</pre>
-                <vectormap center="50.110924,8.682127" zoom="15" pitch="60" bearing="30" height="280" 3d locate></vectormap>
+                <vectormap center="50.110924,8.682127" zoom="15" pitch="60" bearing="30" height="280" 3d fullscreen locate></vectormap>
             </div>
         </div>
 

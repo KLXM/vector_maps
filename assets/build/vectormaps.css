@@ -989,3 +989,60 @@ body.rex-theme-dark .vm-te-color-row input[type="color"] {
     }
 }
 
+/* =============================================================================
+   Fullscreen-Control Styling
+   ============================================================================= */
+
+.vm-fs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 29px;
+    height: 29px;
+    background: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    color: #000;
+}
+
+.vm-fs-btn:hover {
+    background: #f0f0f0;
+}
+
+.vm-fs-btn.vm-fs-active {
+    background: #357edd;
+    color: white;
+}
+
+body.rex-theme-dark .vm-fs-btn {
+    background: #2a2a2a;
+    color: #d0d0d0;
+}
+
+body.rex-theme-dark .vm-fs-btn:hover {
+    background: #3a3a3a;
+}
+
+body.rex-theme-dark .vm-fs-btn.vm-fs-active {
+    background: #357edd;
+    color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+    body.rex-has-theme:not(.rex-theme-light) .vm-fs-btn {
+        background: #2a2a2a;
+        color: #d0d0d0;
+    }
+
+    body.rex-has-theme:not(.rex-theme-light) .vm-fs-btn:hover {
+        background: #3a3a3a;
+    }
+
+    body.rex-has-theme:not(.rex-theme-light) .vm-fs-btn.vm-fs-active {
+        background: #357edd;
+        color: white;
+    }
+}
+

@@ -42,11 +42,14 @@
         route_line:  '#2b7095',
     };
 
+    const BASE_STYLES = ['liberty', 'bright', 'positron'];
+
     let previewMap = null;
 
     /** Initialisiert den gesamten Theme-Editor */
     function init() {
         initPreviewMap();
+        bindBaseStyleSelect();
         bindColorInputs();
         bindPresetButtons();
         bindSaveButton();
@@ -62,9 +65,11 @@
         const container = document.getElementById('vm-te-preview-map');
         if (!container || typeof maplibregl === 'undefined') return;
 
+        const selectedBaseStyle = getSelectedBaseStyle();
+
         previewMap = new maplibregl.Map({
             container: 'vm-te-preview-map',
-            style: vmProxyStyleUrl('liberty'),
+            style: vmProxyStyleUrl(selectedBaseStyle),
             center: [13.405, 52.520], // Berlin
             zoom: 12,
             transformRequest: (url) => vmTransformRequest(url),
@@ -82,6 +87,29 @@
         previewMap.on('styledata', () => {
             if (!previewMap.isStyleLoaded()) return;
             applyCurrentColors();
+        });
+    }
+
+    function getSelectedBaseStyle() {
+        const select = document.getElementById('vm-te-base-style');
+        const value = select ? String(select.value || '').toLowerCase() : 'liberty';
+        return BASE_STYLES.includes(value) ? value : 'liberty';
+    }
+
+    function setSelectedBaseStyle(baseStyle) {
+        const select = document.getElementById('vm-te-base-style');
+        if (!select) return;
+        const normalized = BASE_STYLES.includes(baseStyle) ? baseStyle : 'liberty';
+        select.value = normalized;
+    }
+
+    function bindBaseStyleSelect() {
+        const select = document.getElementById('vm-te-base-style');
+        if (!select) return;
+        select.addEventListener('change', () => {
+            if (!previewMap) return;
+            const styleName = getSelectedBaseStyle();
+            previewMap.setStyle(vmProxyStyleUrl(styleName));
         });
     }
 
@@ -193,10 +221,12 @@
             }
 
             const colors = getCurrentColors();
+            const baseStyle = getSelectedBaseStyle();
             btn.disabled = true;
 
             const formData = new FormData();
             formData.append('vm_theme_name', name);
+            formData.append('vm_theme_base_style', baseStyle);
             Object.entries(colors).forEach(([k, v]) => formData.append('vm_theme_colors[' + k + ']', v));
 
             try {
@@ -204,9 +234,13 @@
                 const resp = await fetch(url, { method: 'POST', body: formData });
                 const data = await resp.json();
                 if (data.success) {
+                    const usage =
+                        baseStyle === 'liberty'
+                            ? 'Verwendung: <code>map-style=&quot;' + escHtml(data.name) + '&quot;</code>'
+                            : 'Verwendung: <code>map-style=&quot;' + escHtml(baseStyle) + '&quot; theme=&quot;' + escHtml(data.name) + '&quot;</code>';
                     showMsg(msg, 'success',
                         '✓ Theme &ldquo;<strong>' + escHtml(data.name) + '</strong>&rdquo; gespeichert! ' +
-                        'Verwendung: <code>map-style=&quot;' + escHtml(data.name) + '&quot;</code>'
+                        usage
                     );
                     setTimeout(() => window.location.reload(), 1800);
                 } else {
@@ -234,6 +268,7 @@
                     const theme = await resp.json();
                     if (theme && theme.colors) {
                         setColors(theme.colors);
+                        setSelectedBaseStyle(theme.base_style || 'liberty');
                         const nameInput = document.getElementById('vm-te-name');
                         if (nameInput) nameInput.value = themeName;
                         applyCurrentColors();
@@ -287,8 +322,13 @@
      * @param {{colors?: object, [key: string]: unknown}} themeData
      */
     function exportTheme(name, themeData) {
+        const baseStyleRaw = (themeData && typeof themeData.base_style === 'string')
+            ? themeData.base_style.toLowerCase()
+            : 'liberty';
+        const baseStyle = BASE_STYLES.includes(baseStyleRaw) ? baseStyleRaw : 'liberty';
         const exportData = {
             name,
+            base_style: baseStyle,
             colors: themeData.colors || themeData,
             exported: new Date().toISOString().slice(0, 19).replace('T', ' '),
         };
@@ -440,9 +480,19 @@
                 const resp   = await fetch(buildApiUrl('import'), { method: 'POST', body: formData });
                 const result = await resp.json();
                 if (result.success) {
+                    const importedBaseStyleRaw = (parsed && typeof parsed.base_style === 'string')
+                        ? parsed.base_style.toLowerCase()
+                        : 'liberty';
+                    const importedBaseStyle = BASE_STYLES.includes(importedBaseStyleRaw)
+                        ? importedBaseStyleRaw
+                        : 'liberty';
+                    const usage =
+                        importedBaseStyle === 'liberty'
+                            ? ' Verwendung: <code>map-style=&quot;' + escHtml(result.name) + '&quot;</code>'
+                            : ' Verwendung: <code>map-style=&quot;' + escHtml(importedBaseStyle) + '&quot; theme=&quot;' + escHtml(result.name) + '&quot;</code>';
                     showMsg(msg, 'success',
                         '✓ Theme &ldquo;<strong>' + escHtml(result.name) + '</strong>&rdquo; importiert!' +
-                        ' Verwendung: <code>map-style=&quot;' + escHtml(result.name) + '&quot;</code>'
+                        usage
                     );
                     setTimeout(() => window.location.reload(), 1800);
                 } else {

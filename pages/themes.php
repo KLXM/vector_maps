@@ -30,6 +30,18 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
                            title="Nur Kleinbuchstaben, Ziffern, Bindestrich">
                 </div>
 
+                <div class="form-group">
+                    <label for="vm-te-base-style">Basisstil</label>
+                    <select id="vm-te-base-style" class="form-control">
+                        <option value="liberty" selected>Liberty</option>
+                        <option value="bright">Bright</option>
+                        <option value="positron">Positron</option>
+                    </select>
+                    <p class="help-block" style="margin-bottom:0">
+                        Das Theme wird auf diesen OFM-Basisstil angewendet.
+                    </p>
+                </div>
+
                 <h5 style="margin-top:20px;margin-bottom:10px">Farben</h5>
 
                 <?php
@@ -223,11 +235,10 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
 
         <div class="alert alert-info" style="margin-top:20px;margin-bottom:0">
             <strong>Verwendung:</strong><br>
-            Im Web-Component einfach den Theme-Namen als <code>map-style</code> angeben
-            (eingebaut oder gespeichert):<br>
-            <code>&lt;vectormap map-style=&quot;<em>theme-name</em>&quot; center=&quot;52.52,13.40&quot; zoom=&quot;12&quot;&gt;&lt;/vectormap&gt;</code><br><br>
-            Oder explizit mit separatem <code>theme</code>-Attribut auf einem OFM-Basis-Stil:<br>
-            <code>&lt;vectormap map-style=&quot;liberty&quot; theme=&quot;<em>theme-name</em>&quot; center=&quot;52.52,13.40&quot; zoom=&quot;12&quot;&gt;&lt;/vectormap&gt;</code>
+            Beispiel (direkt als map-style):<br>
+            <code>&lt;vectormap map-style=&quot;mein-theme&quot; center=&quot;52.52,13.40&quot; zoom=&quot;12&quot;&gt;&lt;/vectormap&gt;</code><br><br>
+            Beispiel (explizit auf Bright-Basis):<br>
+            <code>&lt;vectormap map-style=&quot;bright&quot; theme=&quot;mein-theme&quot; center=&quot;52.52,13.40&quot; zoom=&quot;12&quot;&gt;&lt;/vectormap&gt;</code>
         </div>
 
     </div>
