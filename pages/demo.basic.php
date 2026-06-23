@@ -36,6 +36,7 @@
                         <tr><td><code>bearing</code></td><td><code>0</code></td><td><code>bearing="45"</code></td><td>Kameraausrichtung in Grad</td></tr>
                         <tr><td><code>3d</code></td><td><code>false</code></td><td><code>3d</code></td><td>3D-Gebäude aktivieren (Boolean-Attribut)</td></tr>
                         <tr><td><code>locate</code></td><td><code>false</code></td><td><code>locate</code></td><td>Standort-Button einblenden (Boolean-Attribut)</td></tr>
+                        <tr><td><code>fullscreen</code></td><td><code>false</code></td><td><code>fullscreen</code></td><td>Vollbild-Button einblenden (Boolean-Attribut)</td></tr>
                         <tr><td><code>no-navigation</code></td><td><code>false</code></td><td><code>no-navigation</code></td><td>Zoom-/Dreh-Buttons ausblenden (Boolean-Attribut)</td></tr>
                         <tr><td><code>no-attribution</code></td><td><code>false</code></td><td><code>no-attribution</code></td><td>Quellenangabe ausblenden (Boolean-Attribut)</td></tr>
                         <tr><td><code>interactive</code></td><td><code>"true"</code></td><td><code>interactive="false"</code></td><td>Statische Karte (kein Scrollen/Ziehen) &ndash; Wert <code>"false"</code> als String übergeben</td></tr>

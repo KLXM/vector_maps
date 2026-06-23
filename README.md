@@ -162,6 +162,7 @@ worker-src blob:;
 | `3d` | `false` | `3d` | 3D-Gebäude aktivieren |
 | `interactive` | `true` | `interactive="false"` | Karte scrollbar/zoombar (Standard: aktiv). Mit `interactive="false"` deaktivieren |
 | `locate` | `false` | `locate` | Standort-Button anzeigen |
+| `fullscreen` | `false` | `fullscreen` | Fullscreen-Button anzeigen (Karte im Browser-Vollbild umschalten) |
 | `no-navigation` | `false` | `no-navigation` | Zoom-/Kompass-Controls ausblenden |
 | `no-attribution` | `false` | `no-attribution` | Attributionszeile ausblenden |
 | `fly-to` | – | `fly-to="48.85,2.35"` | Kartenansicht nach dem Laden animiert zentrieren |
@@ -402,12 +403,14 @@ Beide Dienste sind bereits in der Proxy-Whitelist eingetragen (`api.open-meteo.c
 
 ## Themes
 
-Drei eingebaute Themes stehen sofort zur Verfügung:
+Fünf eingebaute Themes stehen sofort zur Verfügung:
 
 | Theme | Attribut | Beschreibung |
 |---|---|---|
 | Standard | _(leer)_ | Helles Standardlayout (OpenFreeMap Liberty) |
 | `dark` | `theme="dark"` | Dunkles Layout |
+| `redaxo` | `theme="redaxo"` | REDAXO-Backend-Farben (Blau/Neutral) |
+| `bright` | `theme="bright"` | Leuchtendes, kontrastreiches Layout |
 | `warm` | `theme="warm"` | Warmes Orange-/Beigelayout |
 | `mono` | `theme="mono"` | Graustufen-Layout |
 

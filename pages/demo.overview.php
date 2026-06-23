@@ -84,6 +84,8 @@
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-xs btn-primary vm-demo-theme-btn active" data-theme="none">&mdash; Kein Theme</button>
                     <button type="button" class="btn btn-xs btn-default vm-demo-theme-btn" data-theme="dark">Dark</button>
+                    <button type="button" class="btn btn-xs btn-default vm-demo-theme-btn" data-theme="redaxo">REDAXO</button>
+                    <button type="button" class="btn btn-xs btn-default vm-demo-theme-btn" data-theme="bright">Bright</button>
                     <button type="button" class="btn btn-xs btn-default vm-demo-theme-btn" data-theme="warm">Warm</button>
                     <button type="button" class="btn btn-xs btn-default vm-demo-theme-btn" data-theme="mono">Mono</button>
                 </div>

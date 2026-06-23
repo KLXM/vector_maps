@@ -109,6 +109,8 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
                     <span>Vorlage:</span>
                     <button type="button" class="btn btn-xs btn-default vm-te-preset" data-preset="default">Standard</button>
                     <button type="button" class="btn btn-xs btn-default vm-te-preset" data-preset="dark">Dark</button>
+                    <button type="button" class="btn btn-xs btn-default vm-te-preset" data-preset="redaxo">REDAXO</button>
+                    <button type="button" class="btn btn-xs btn-default vm-te-preset" data-preset="bright">Bright</button>
                     <button type="button" class="btn btn-xs btn-default vm-te-preset" data-preset="warm">Warm</button>
                     <button type="button" class="btn btn-xs btn-default vm-te-preset" data-preset="mono">Mono</button>
                 </div>
@@ -163,6 +165,8 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
             <?php
             $builtIn = [
                 'dark' => ['label' => 'Dark', 'desc' => 'Nacht / Dark Mode', 'preview' => '#16161d', 'water' => '#0a1520'],
+                'redaxo' => ['label' => 'REDAXO', 'desc' => 'Backend-Farben / Blau', 'preview' => '#f2f5f8', 'water' => '#8fc6eb'],
+                'bright' => ['label' => 'Bright', 'desc' => 'Leuchtend / Kontrastreich', 'preview' => '#f7f4ee', 'water' => '#86c6ff'],
                 'warm' => ['label' => 'Warm', 'desc' => 'Sandstein / Warm', 'preview' => '#f4ead6', 'water' => '#a8c8e0'],
                 'mono' => ['label' => 'Mono', 'desc' => 'Graustufen',        'preview' => '#eeeeee', 'water' => '#c0ccd4'],
             ];
@@ -198,6 +202,13 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
             $colors = $theme['colors'] ?? [];
             $landColor  = rex_escape($colors['land']  ?? '#cccccc');
             $waterColor = rex_escape($colors['water'] ?? '#aaaaaa');
+            $baseStyleRaw = (string) ($theme['base_style'] ?? 'liberty');
+            $baseStyle = in_array($baseStyleRaw, ['liberty', 'bright', 'positron'], true) ? $baseStyleRaw : 'liberty';
+            $baseStyleLabel = [
+                'liberty' => 'Liberty',
+                'bright' => 'Bright',
+                'positron' => 'Positron',
+            ][$baseStyle];
             ?>
             <div class="vm-te-card" data-theme="<?= rex_escape($name) ?>">
                 <div class="vm-te-card-swatch">
@@ -206,6 +217,7 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
                 </div>
                 <div class="vm-te-card-body">
                     <strong><?= rex_escape($name) ?></strong><br>
+                    <span class="text-muted" style="font-size:12px">Basisstil: <strong><?= rex_escape($baseStyleLabel) ?></strong></span><br>
                     <code style="font-size:11px">map-style=&quot;<?= rex_escape($name) ?>&quot;</code>
                     <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">
                         <button type="button"

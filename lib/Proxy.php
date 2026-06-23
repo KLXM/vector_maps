@@ -156,14 +156,42 @@ class Proxy
                 . (isset($parts['query']) ? '?' . $parts['query'] : '');
         }
 
+        $parts = parse_url($safeUrl);
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = (string) ($parts['path'] ?? '');
+        $query = (string) ($parts['query'] ?? '');
+
+        $isOverpassInterpreter = in_array($host, ['overpass-api.de', 'lz4.overpass-api.de', 'z.overpass-api.de'], true)
+            && $path === '/api/interpreter';
+
+        $overpassQueryData = null;
+        if ($isOverpassInterpreter && '' !== $query) {
+            $queryParams = [];
+            parse_str($query, $queryParams);
+            if (isset($queryParams['data']) && is_string($queryParams['data']) && '' !== $queryParams['data']) {
+                $overpassQueryData = $queryParams['data'];
+            }
+        }
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $safeUrl);
+        if (null !== $overpassQueryData) {
+            $overpassUrl = ($parts['scheme'] ?? 'https') . '://' . $host . $path;
+            curl_setopt($ch, CURLOPT_URL, $overpassUrl);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, 'data=' . $overpassQueryData);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'curl/8.7.1');
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: */*',
+                'Content-Type: application/x-www-form-urlencoded',
+            ]);
+        } else {
+            curl_setopt($ch, CURLOPT_URL, $safeUrl);
+        }
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         // CURLOPT_ENCODING = '' lässt cURL gzip/brotli automatisch dekomprimieren
         // ohne das schickt CloudFlare komprimierte Daten, MapLibre kann sie nicht parsen
         curl_setopt($ch, CURLOPT_ENCODING, '');
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 REDAXO/vector_maps');
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
@@ -174,7 +202,8 @@ class Proxy
         curl_close($ch);
 
         if ($httpCode !== 200 || false === $content) {
-            rex_response::setStatus(rex_response::HTTP_NOT_FOUND);
+            $status = ($httpCode >= 400 && $httpCode <= 599) ? $httpCode : rex_response::HTTP_BAD_GATEWAY;
+            rex_response::setStatus($status);
             rex_response::sendContent("Proxy upstream failed (HTTP $httpCode).");
             exit;
         }

@@ -519,7 +519,7 @@ class VectorMapPicker {
             });
         });
 
-        // Theme-Umschalter (Dark / Warm / Mono / Reset)
+        // Theme-Umschalter (Dark / REDAXO / Bright / Warm / Mono / Reset)
         document.querySelectorAll('.vm-demo-theme-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.vm-demo-theme-btn').forEach(b => {
@@ -659,6 +659,46 @@ const VM_BUILT_IN_THEMES = {
             label_halo:        '#16161d',
             road_label:        '#c8d8e8',
             route_line:        '#4a9cc8',
+            customize_outlines: true,
+        },
+    },
+    redaxo: {
+        label: 'REDAXO',
+        colors: {
+            land:              '#f2f5f8',
+            water:             '#8fc6eb',
+            green:             '#9cc388',
+            farmland:          '#cfe0b3',
+            road_major:        '#4b9ad9',
+            road_minor:        '#eef3f8',
+            road_casing:       '#8fb6d8',
+            rail:              '#7a8a99',
+            building:          '#d8e1ea',
+            outline:           '#b8c5d2',
+            label:             '#2f3a45',
+            label_halo:        '#f8fbff',
+            road_label:        '#2b4055',
+            route_line:        '#3a7fb8',
+            customize_outlines: true,
+        },
+    },
+    bright: {
+        label: 'Bright',
+        colors: {
+            land:              '#f7f4ee',
+            water:             '#86c6ff',
+            green:             '#8fcf7a',
+            farmland:          '#cdebb3',
+            road_major:        '#f7b955',
+            road_minor:        '#fff9ec',
+            road_casing:       '#d9bf8b',
+            rail:              '#9d8f80',
+            building:          '#d9d0c3',
+            outline:           '#b5aa9a',
+            label:             '#2d2b27',
+            label_halo:        '#fdfaf3',
+            road_label:        '#3a342c',
+            route_line:        '#1f7bbf',
             customize_outlines: true,
         },
     },

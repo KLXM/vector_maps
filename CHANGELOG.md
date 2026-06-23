@@ -5,6 +5,24 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.1.3] – 2026-06-23
+
+### Hinzugefügt
+
+- **Neue mitgelieferte Themes** – Built-in-Themes `bright` und `redaxo` ergänzt; beide sind in Demo, Theme-Builder-Vorlagen und Built-in-Karten auswählbar/exportierbar
+- **Basisstil-Information bei eigenen Themes** – Theme-Karten im Builder zeigen jetzt den zugrunde liegenden OFM-Basisstil (`liberty`, `bright`, `positron`) direkt an
+
+### Gefixt
+
+- **Umgebungssuche via Overpass schlug teils fehl (404/406)** – Proxy behandelt Overpass-Interpreter-Aufrufe robuster (POST-basiert), und Upstream-Statuscodes werden transparent durchgereicht statt pauschal als 404 maskiert
+- **Attribut-Referenz unvollständig** – `fullscreen` in der Schnellreferenz ergänzt (README und Demo Basic)
+
+### Geändert
+
+- **Theme-System erweitert** – benutzerdefinierte Themes berücksichtigen den gespeicherten `base_style` konsistent bei Laden, Anwendung und Satelliten-Rückwechsel
+
+---
+
 ## [1.1.2] – 2026-05-11
 
 ### Gefixt
