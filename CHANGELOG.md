@@ -5,6 +5,24 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.1.4] – 2026-06-30
+
+### Hinzugefügt
+
+- **Route-Panel als echte Seiten-Spalte** – neues Layout über `route-panel-layout="side-right|side-left"` und Breitensteuerung via `route-panel-width`; das Panel wird dabei als eigene Nachbarspalte neben der Karte gerendert statt als Overlay innerhalb der Kartenfläche
+
+### Gefixt
+
+- **Side-Layout wurde teilweise noch als Overlay dargestellt** – Inline-Layoutwerte des Host-Elements (`display:block`) konnten das Spaltenlayout übersteuern; Side-Layout erzwingt jetzt zuverlässig Flex-Zweispaltenlayout und saubere Rückschaltung auf Overlay-Modus
+- **Info-Layer in Side-Demo störte die Klarheit** – das zusätzliche Infofenster wurde aus der Side-Layout-Demo entfernt, damit der Fokus auf der Spalten-Darstellung des Routings liegt
+
+### Geändert
+
+- **Demo-Struktur bereinigt** – doppelte Style-Preset-Demos wurden aus „Erweiterte Features“ entfernt und auf die dedizierte Skin-Demo konzentriert
+- **Dokumentation erweitert** – Attributreferenzen in README und Demo-Basic um `route-panel-layout` und `route-panel-width` ergänzt
+
+---
+
 ## [1.1.3] – 2026-06-23
 
 ### Hinzugefügt

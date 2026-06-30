@@ -159,6 +159,9 @@ class VectorMapPicker {
 
         // Demo 12: 3D Overfly Berlin
         initOverflyDemo();
+
+        // Demo 13: Custom-UI Infofenster-API
+        initCustomUiInfoDemo();
     }
 
     setupInput(input) {
@@ -354,7 +357,7 @@ class VectorMapPicker {
             alert('Ihr Browser unterstützt keine Geolokalisierung.');
             return;
         }
-        const locateSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>';
+        const locateSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s6.5-4.2 6.5-10.2A6.5 6.5 0 1 0 5.5 11.8C5.5 17.8 12 22 12 22Z"/><circle cx="12" cy="11" r="2.2"/></svg>';
         const btn = document.getElementById('vm-locate-btn');
         if (btn) btn.classList.add('locating');
         navigator.geolocation.getCurrentPosition(
@@ -1086,6 +1089,267 @@ function initVectorMap(el) {
     vmEnqueueBuild(el);
 }
 
+const VM_CONTROL_POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+function vmNormalizeControlPosition(raw, fallback = 'top-right') {
+    const pos = String(raw || '').toLowerCase();
+    return VM_CONTROL_POSITIONS.includes(pos) ? pos : fallback;
+}
+
+function vmSetCornerVars(el, prefix, position, offsetPx = 10, stackOffset = 0) {
+    const pos = vmNormalizeControlPosition(position, null);
+    if (!pos) return;
+
+    const px = (n) => `${Math.max(0, Math.round(n))}px`;
+    const base = Number(offsetPx) || 10;
+    const stack = Number(stackOffset) || 0;
+
+    if (pos === 'top-left') {
+        el.style.setProperty(`--${prefix}-top`, px(base + stack));
+        el.style.setProperty(`--${prefix}-left`, px(base));
+        el.style.setProperty(`--${prefix}-right`, 'auto');
+        el.style.setProperty(`--${prefix}-bottom`, 'auto');
+    } else if (pos === 'top-right') {
+        el.style.setProperty(`--${prefix}-top`, px(base + stack));
+        el.style.setProperty(`--${prefix}-right`, px(base));
+        el.style.setProperty(`--${prefix}-left`, 'auto');
+        el.style.setProperty(`--${prefix}-bottom`, 'auto');
+    } else if (pos === 'bottom-left') {
+        el.style.setProperty(`--${prefix}-bottom`, px(base + stack));
+        el.style.setProperty(`--${prefix}-left`, px(base));
+        el.style.setProperty(`--${prefix}-right`, 'auto');
+        el.style.setProperty(`--${prefix}-top`, 'auto');
+    } else {
+        el.style.setProperty(`--${prefix}-bottom`, px(base + stack));
+        el.style.setProperty(`--${prefix}-right`, px(base));
+        el.style.setProperty(`--${prefix}-left`, 'auto');
+        el.style.setProperty(`--${prefix}-top`, 'auto');
+    }
+}
+
+function vmApplyOverlayPositions(el) {
+    const reserve = vmCollectControlReserve(el);
+    const basePos = vmNormalizeControlPosition(el.getAttribute('buttons-position'), 'bottom-right');
+    const locatePos = vmNormalizeControlPosition(el.getAttribute('locate-position'), basePos);
+    const satPos = vmNormalizeControlPosition(el.getAttribute('satellite-position'), basePos);
+    const gap = parseFloat(el.getAttribute('buttons-gap') || '38');
+
+    const locateBase = parseFloat(el.getAttribute('buttons-offset') || '10') + (reserve[locatePos] || 0);
+    vmSetCornerVars(el, 'vm-locate', locatePos, locateBase, 0);
+
+    // Nur bei gleicher Ecke stacken, sonst unabhängig platzieren
+    const satStack = satPos === locatePos ? gap : 0;
+    const satBase = parseFloat(el.getAttribute('buttons-offset') || '10') + (reserve[satPos] || 0);
+    vmSetCornerVars(el, 'vm-satellite', satPos, satBase, satStack);
+}
+
+function vmCollectControlReserve(el) {
+    const reserve = {
+        'top-left': 0,
+        'top-right': 0,
+        'bottom-left': 0,
+        'bottom-right': 0,
+    };
+
+    if (!el.hasAttribute('no-navigation')) {
+        const navPos = vmNormalizeControlPosition(el.getAttribute('controls-position'), 'top-right');
+        reserve[navPos] += 74;
+    }
+
+    if (el.hasAttribute('fullscreen')) {
+        const fsFallback = vmNormalizeControlPosition(el.getAttribute('controls-position'), 'top-right');
+        const fsPos = vmNormalizeControlPosition(el.getAttribute('fullscreen-position'), fsFallback);
+        reserve[fsPos] += 42;
+    }
+
+    return reserve;
+}
+
+function vmApplyRoutePanelPosition(el) {
+    const panel = el._vmRoutePanel;
+    if (!panel) return;
+    const mapPane = el._vmMapContainer || el.querySelector('.vm-map-pane');
+
+    const layout = String(el.getAttribute('route-panel-layout') || '').toLowerCase();
+    if (layout === 'side-right' || layout === 'side-left') {
+        panel.classList.add('vm-route-panel--side');
+        el.classList.add('vm-route-layout-side');
+        el.classList.toggle('vm-route-layout-left', layout === 'side-left');
+
+        // initVectorMap setzt inline display:block/overflow:hidden.
+        // Für Side-Layout überschreiben wir das explizit auf dem Host.
+        el.style.display = 'flex';
+        el.style.alignItems = 'stretch';
+        el.style.gap = '12px';
+        el.style.overflow = 'visible';
+
+        if (mapPane) {
+            mapPane.style.flex = '1 1 auto';
+            mapPane.style.minWidth = '0';
+            mapPane.style.height = '100%';
+        }
+
+        const w = String(el.getAttribute('route-panel-width') || '340');
+        const width = /^\d+$/.test(w) ? (w + 'px') : w;
+        el.style.setProperty('--vm-route-side-width', width);
+        return;
+    }
+
+    panel.classList.remove('vm-route-panel--side');
+    el.classList.remove('vm-route-layout-side', 'vm-route-layout-left');
+    el.style.display = 'block';
+    el.style.alignItems = '';
+    el.style.gap = '';
+    el.style.overflow = 'hidden';
+
+    if (mapPane) {
+        mapPane.style.flex = '';
+        mapPane.style.minWidth = '';
+        mapPane.style.height = '100%';
+    }
+
+    const pos = vmNormalizeControlPosition(el.getAttribute('route-panel-position'), 'top-left');
+    vmSetCornerVars(el, 'vm-rp', pos, parseFloat(el.getAttribute('route-panel-offset') || '12'), 0);
+
+    const preset = String(el.getAttribute('route-panel-style') || '').toLowerCase();
+    panel.classList.remove('vm-route-panel--glass', 'vm-route-panel--contrast', 'vm-route-panel--brand');
+    if (preset === 'glass' || preset === 'contrast' || preset === 'brand') {
+        panel.classList.add('vm-route-panel--' + preset);
+    }
+}
+
+function vmSetInfoHtml(el, html) {
+    if (!el._vmInfoWindow) return;
+    const box = el._vmInfoWindow.querySelector('.vm-info-window__content');
+    if (box) box.innerHTML = String(html || '');
+}
+
+function vmFindDirectChildByClass(el, className) {
+    for (let i = 0; i < el.children.length; i++) {
+        const child = el.children[i];
+        if (child.classList && child.classList.contains(className)) {
+            return child;
+        }
+    }
+    return null;
+}
+
+function vmExtractInlineInfoWindow(el) {
+    if (el._vmInlineInfoRead) return;
+    el._vmInlineInfoRead = true;
+
+    const inlineInfo = vmFindDirectChildByClass(el, 'mapinfo');
+    if (!inlineInfo) return;
+
+    if (!el.hasAttribute('info-html')) {
+        el.setAttribute('info-html', inlineInfo.innerHTML);
+    }
+    if (!el.hasAttribute('info-position') && inlineInfo.hasAttribute('data-position')) {
+        el.setAttribute('info-position', inlineInfo.getAttribute('data-position') || 'top-left');
+    }
+    if (!el.hasAttribute('info-class') && inlineInfo.hasAttribute('data-class')) {
+        el.setAttribute('info-class', inlineInfo.getAttribute('data-class') || '');
+    }
+    if (inlineInfo.hasAttribute('data-closable')) {
+        el.setAttribute('info-closable', '');
+    }
+
+    inlineInfo.remove();
+}
+
+function vmApplyInfoWindow(el) {
+    vmExtractInlineInfoWindow(el);
+    const infoHtml = el.getAttribute('info-html');
+    const infoVisible = el.getAttribute('info-visible');
+
+    if (!infoHtml || infoVisible === 'false') {
+        if (el._vmInfoWindow) el._vmInfoWindow.style.display = 'none';
+        return;
+    }
+
+    if (!el._vmInfoWindow) {
+        const wrap = document.createElement('div');
+        wrap.className = 'vm-info-window';
+        wrap.innerHTML = '<div class="vm-info-window__content"></div>';
+        el.appendChild(wrap);
+        el._vmInfoWindow = wrap;
+    }
+
+    const customClass = el.getAttribute('info-class');
+    el._vmInfoWindow.className = 'vm-info-window' + (customClass ? ' ' + customClass : '');
+    el._vmInfoWindow.style.display = '';
+    vmSetInfoHtml(el, infoHtml);
+
+    let closeBtn = el._vmInfoWindow.querySelector('.vm-info-window__close');
+    if (el.hasAttribute('info-closable') && !closeBtn) {
+        closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'vm-info-window__close';
+        closeBtn.setAttribute('aria-label', 'Infobox schließen');
+        closeBtn.innerHTML = '✕';
+        closeBtn.addEventListener('click', () => {
+            el.setAttribute('info-visible', 'false');
+            if (el._vmInfoWindow) el._vmInfoWindow.style.display = 'none';
+        });
+        el._vmInfoWindow.appendChild(closeBtn);
+    } else if (!el.hasAttribute('info-closable') && closeBtn) {
+        closeBtn.remove();
+    }
+
+    const infoPos = vmNormalizeControlPosition(el.getAttribute('info-position'), 'top-left');
+    vmSetCornerVars(el, 'vm-info', infoPos, parseFloat(el.getAttribute('info-offset') || '12'), 0);
+}
+
+function vmAttachElementApi(el) {
+    if (el._vmApiAttached) return;
+    el._vmApiAttached = true;
+
+    el.setInfoHtml = (html) => {
+        el.setAttribute('info-html', String(html));
+        if (el._vmMapBuilt) vmApplyInfoWindow(el);
+    };
+    el.showInfoWindow = () => {
+        el.setAttribute('info-visible', 'true');
+        if (el._vmMapBuilt) vmApplyInfoWindow(el);
+    };
+    el.hideInfoWindow = () => {
+        el.setAttribute('info-visible', 'false');
+        if (el._vmMapBuilt && el._vmInfoWindow) el._vmInfoWindow.style.display = 'none';
+    };
+    el.setInfoPosition = (pos) => {
+        el.setAttribute('info-position', String(pos));
+        if (el._vmMapBuilt) vmApplyInfoWindow(el);
+    };
+}
+
+function vmObserveDynamicAttributes(el) {
+    if (el._vmObserver) return;
+    const dynamicAttrs = new Set([
+        'buttons-position', 'locate-position', 'satellite-position', 'buttons-offset', 'buttons-gap',
+        'route-panel-position', 'route-panel-offset', 'route-panel-style',
+        'info-html', 'info-position', 'info-offset', 'info-class', 'info-visible', 'info-closable',
+    ]);
+
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((m) => {
+            if (m.type !== 'attributes') return;
+            if (!dynamicAttrs.has(m.attributeName)) return;
+            if (m.attributeName.includes('info-')) {
+                vmApplyInfoWindow(el);
+                return;
+            }
+            if (m.attributeName.startsWith('route-panel-')) {
+                vmApplyRoutePanelPosition(el);
+                return;
+            }
+            vmApplyOverlayPositions(el);
+        });
+    });
+
+    observer.observe(el, { attributes: true });
+    el._vmObserver = observer;
+}
+
 /**
  * Erstellt die MapLibre-Karte für ein <vectormap>-Element.
  * Wird von initVectorMap() aufgerufen — lazy sobald das Element in den Viewport scrollt.
@@ -1143,6 +1407,7 @@ function vmBuildMap(el) {
     const pitch       = parseFloat(el.getAttribute('pitch')     || '0');
     const bearing     = parseFloat(el.getAttribute('bearing')   || '0');
     const mapStyle    = el.getAttribute('map-style') || 'liberty';
+    const controlsPos = vmNormalizeControlPosition(el.getAttribute('controls-position'), 'top-right');
     const interactive = el.getAttribute('interactive') !== 'false';
     const minZoom     = el.hasAttribute('min-zoom') ? parseFloat(el.getAttribute('min-zoom')) : 0;
     const maxZoom     = el.hasAttribute('max-zoom') ? parseFloat(el.getAttribute('max-zoom')) : 22;
@@ -1156,9 +1421,11 @@ function vmBuildMap(el) {
 
     // Karten-Container
     const container = document.createElement('div');
+    container.className = 'vm-map-pane';
     container.style.width  = '100%';
     container.style.height = '100%';
     el.appendChild(container);
+    el._vmMapContainer = container;
 
     const map = new maplibregl.Map({
         container,
@@ -1176,6 +1443,8 @@ function vmBuildMap(el) {
     });
 
     el._vmMap = map;
+    vmAttachElementApi(el);
+    vmObserveDynamicAttributes(el);
     map._vmEl = el;  // Rueckwaerts-Referenz fuer Theme-Fade-in
     map._vmBaseStyle = VM_OFM_STYLES.includes(mapStyle) || mapStyle.startsWith('http') ? mapStyle : 'liberty';
     vmRegisterMap(map);
@@ -1194,12 +1463,13 @@ function vmBuildMap(el) {
     });
 
     if (!el.hasAttribute('no-navigation')) {
-        map.addControl(new maplibregl.NavigationControl());
+        map.addControl(new maplibregl.NavigationControl(), controlsPos);
     }
 
     // Optional: Fullscreen-Control
     if (el.hasAttribute('fullscreen')) {
-        map.addControl(new VMFullscreenControl(), 'top-right');
+        const fsPos = vmNormalizeControlPosition(el.getAttribute('fullscreen-position'), controlsPos);
+        map.addControl(new VMFullscreenControl(), fsPos);
     }
 
     if (el.hasAttribute('locate')) {
@@ -1209,6 +1479,9 @@ function vmBuildMap(el) {
     if (el.hasAttribute('show-satellite')) {
         vmAddSatelliteToggle(el, map, mapStyle);
     }
+
+    vmApplyOverlayPositions(el);
+    vmApplyInfoWindow(el);
 
     // Route-Panel (interaktive Adresssuche) — vor map.on('load') damit Panel sofort im DOM ist
     if (el.hasAttribute('route-panel')) {
@@ -1369,6 +1642,129 @@ function vmCreateMarkerEl(m) {
     return null;
 }
 
+/**
+ * Liefert den konfigurierten Fokusmodus für Popups.
+ * Erlaubte Werte: restore | canvas | none
+ * @param {HTMLElement|null|undefined} el
+ * @param {'restore'|'canvas'|'none'} fallback
+ * @returns {'restore'|'canvas'|'none'}
+ */
+function vmGetPopupFocusMode(el, fallback = 'restore') {
+    const raw = el && el.getAttribute ? String(el.getAttribute('popup-focus-mode') || '').toLowerCase() : '';
+    if (raw === 'restore' || raw === 'canvas' || raw === 'none') return raw;
+    return fallback;
+}
+
+/**
+ * Verbessert Keyboard-/Focus-Verhalten für Marker-Popups:
+ * - Marker wird per Tastatur fokussier- und auslösbar
+ * - Beim Öffnen via Tastatur erhält der Close-Button den Fokus
+ * - Beim Schließen springt der Fokus zurück zum auslösenden Marker
+ * @param {maplibregl.Marker} marker
+ * @param {maplibregl.Popup} popup
+ * @param {HTMLElement|null} el
+ */
+function vmBindPopupA11y(marker, popup, el = null) {
+    if (!marker || !popup) return;
+
+    const triggerEl = marker.getElement && marker.getElement();
+    if (!triggerEl) return;
+
+    let openedViaKeyboard = false;
+    let focusRestoreTarget = null;
+    const focusMode = vmGetPopupFocusMode(el, 'restore');
+
+    // Marker für Keyboard-Nutzung vorbereiten
+    triggerEl.classList.add('vm-marker-focusable');
+    if (!triggerEl.hasAttribute('tabindex')) {
+        triggerEl.setAttribute('tabindex', '0');
+    }
+    if (!triggerEl.hasAttribute('role')) {
+        triggerEl.setAttribute('role', 'button');
+    }
+    if (!triggerEl.hasAttribute('aria-label')) {
+        triggerEl.setAttribute('aria-label', 'Kartenmarker öffnen');
+    }
+
+    triggerEl.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        openedViaKeyboard = true;
+        focusRestoreTarget = triggerEl;
+        marker.togglePopup();
+    });
+
+    triggerEl.addEventListener('click', () => {
+        openedViaKeyboard = false;
+        focusRestoreTarget = triggerEl;
+    });
+
+    popup.on('open', () => {
+        const popupEl = popup.getElement();
+        if (!popupEl) return;
+
+        popupEl.setAttribute('role', 'dialog');
+        popupEl.setAttribute('aria-modal', 'false');
+
+        const closeBtn = popupEl.querySelector('.maplibregl-popup-close-button');
+        if (closeBtn) {
+            closeBtn.setAttribute('aria-label', 'Popup schließen');
+            if (openedViaKeyboard) {
+                requestAnimationFrame(() => closeBtn.focus());
+            }
+        }
+    });
+
+    popup.on('close', () => {
+        if (focusMode === 'restore' && focusRestoreTarget && document.contains(focusRestoreTarget)) {
+            focusRestoreTarget.focus();
+        }
+        openedViaKeyboard = false;
+    });
+}
+
+/**
+ * Fokusmanagement für Popups ohne Marker-Trigger (z.B. Layer-Klicks).
+ * @param {maplibregl.Map} map
+ * @param {maplibregl.Popup} popup
+ * @param {HTMLElement|null} el
+ */
+function vmBindFeaturePopupA11y(map, popup, el = null) {
+    if (!map || !popup) return;
+
+    const canvas = map.getCanvas();
+    if (!canvas.hasAttribute('tabindex')) canvas.setAttribute('tabindex', '0');
+
+    const activeEl = document.activeElement;
+    const restoreTarget = (el && activeEl && el.contains(activeEl)) ? activeEl : canvas;
+    const focusMode = vmGetPopupFocusMode(el, 'canvas');
+
+    popup.on('open', () => {
+        const popupEl = popup.getElement();
+        if (!popupEl) return;
+
+        popupEl.setAttribute('role', 'dialog');
+        popupEl.setAttribute('aria-modal', 'false');
+
+        const closeBtn = popupEl.querySelector('.maplibregl-popup-close-button');
+        if (closeBtn) {
+            closeBtn.setAttribute('aria-label', 'Popup schließen');
+            requestAnimationFrame(() => closeBtn.focus());
+        }
+    });
+
+    popup.on('close', () => {
+        if (focusMode === 'none') return;
+        if (focusMode === 'canvas') {
+            if (document.contains(canvas)) canvas.focus();
+            return;
+        }
+        if (restoreTarget && document.contains(restoreTarget) && typeof restoreTarget.focus === 'function') {
+            restoreTarget.focus();
+        }
+    });
+}
+
 function vmAddMarkers(el, map) {
     const markerStr = el.getAttribute('markers');
     if (!markerStr) return;
@@ -1377,7 +1773,7 @@ function vmAddMarkers(el, map) {
         console.warn('<vectormap> markers JSON ungültig:', e); return;
     }
     if (el.hasAttribute('cluster')) {
-        vmAddClusteredMarkers(map, markers);
+        vmAddClusteredMarkers(el, map, markers);
     } else {
         markers.forEach(m => {
             const markerEl   = vmCreateMarkerEl(m);
@@ -1387,7 +1783,9 @@ function vmAddMarkers(el, map) {
             const marker = new maplibregl.Marker(markerOpts)
                 .setLngLat([parseFloat(m.lng), parseFloat(m.lat)]);
             if (m.popup || m.label) {
-                marker.setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(m.popup || m.label));
+                const popup = new maplibregl.Popup({ offset: 25 }).setHTML(m.popup || m.label);
+                marker.setPopup(popup);
+                vmBindPopupA11y(marker, popup, el);
             }
             marker.addTo(map);
         });
@@ -1412,7 +1810,7 @@ function vmFitMarkerBounds(map, markers) {
     map.fitBounds(bounds, { padding: 60, maxZoom: 16, duration: 500 });
 }
 
-function vmAddClusteredMarkers(map, markers) {
+function vmAddClusteredMarkers(el, map, markers) {
     const geojson = {
         type: 'FeatureCollection',
         features: markers.map(m => ({
@@ -1458,10 +1856,11 @@ function vmAddClusteredMarkers(map, markers) {
     map.on('click', srcId + '-p', (e) => {
         const { popup } = e.features[0].properties;
         if (!popup) return;
-        new maplibregl.Popup()
+        const featurePopup = new maplibregl.Popup()
             .setLngLat(e.features[0].geometry.coordinates.slice())
             .setHTML(popup)
             .addTo(map);
+        vmBindFeaturePopupA11y(map, featurePopup, el);
     });
 
     [srcId + '-c', srcId + '-p'].forEach(layer => {
@@ -1676,6 +2075,8 @@ async function vmDrawRoute(el, map, fromStr, toStr, mode) {
             .setPopup(new maplibregl.Popup().setText('Start: ' + fromLabel)).addTo(map);
         const toMarker = new maplibregl.Marker({ color: '#e74c3c' }).setLngLat([toLng, toLat])
             .setPopup(new maplibregl.Popup().setText('Ziel: ' + toLabel)).addTo(map);
+        vmBindPopupA11y(fromMarker, fromMarker.getPopup(), el);
+        vmBindPopupA11y(toMarker, toMarker.getPopup(), el);
         el._vmRouteMarkers = [fromMarker, toMarker];
 
         // Info-Badge
@@ -1719,7 +2120,7 @@ function vmAddRoutePanel(el, map) {
     const hasLocate = 'geolocation' in navigator;
 
     // Locate-Button SVG (Crosshair)
-    const locateSvg = `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' width='16' height='16' aria-hidden='true'><circle cx='12' cy='12' r='3'/><line x1='12' y1='2' x2='12' y2='6'/><line x1='12' y1='18' x2='12' y2='22'/><line x1='2' y1='12' x2='6' y2='12'/><line x1='18' y1='12' x2='22' y2='12'/></svg>`;
+    const locateSvg = `<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round' width='16' height='16' aria-hidden='true'><path d='M12 22s6.5-4.2 6.5-10.2A6.5 6.5 0 1 0 5.5 11.8C5.5 17.8 12 22 12 22Z'/><circle cx='12' cy='11' r='2.2'/></svg>`;
 
     const panel = document.createElement('div');
     panel.className = 'vm-route-panel';
@@ -1755,6 +2156,20 @@ function vmAddRoutePanel(el, map) {
         </div>`;
 
     el.appendChild(panel);
+    el._vmRoutePanel = panel;
+    vmApplyRoutePanelPosition(el);
+
+    // Side-Layout: Panel als eigene Spalte links/rechts neben der Karte anordnen
+    const layout = String(el.getAttribute('route-panel-layout') || '').toLowerCase();
+    const mapPane = el._vmMapContainer || el.firstElementChild;
+    if (mapPane && (layout === 'side-left' || layout === 'side-right')) {
+        if (layout === 'side-left') {
+            el.insertBefore(panel, mapPane);
+        } else {
+            el.appendChild(panel);
+        }
+        requestAnimationFrame(() => map.resize());
+    }
 
     const fromInput = panel.querySelector('.vm-rp-from');
     const toInput   = panel.querySelector('.vm-rp-to');
@@ -1765,7 +2180,9 @@ function vmAddRoutePanel(el, map) {
 
     // Standort-Button: GPS-Koordinaten in Von-Feld eintragen
     if (locateBtn) {
-        locateBtn.addEventListener('click', () => {
+        locateBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             locateBtn.classList.add('locating');
             navigator.geolocation.getCurrentPosition(
                 pos => {
@@ -1906,6 +2323,7 @@ function vmAddRoutePanel(el, map) {
                     .setLngLat([lng, lat])
                     .setPopup(destPopup)
                     .addTo(map);
+                vmBindPopupA11y(destMarker, destPopup, el);
                 destMarker.togglePopup(); // Popup sofort öffnen
                 if (!el._vmRouteMarkers) el._vmRouteMarkers = [];
                 el._vmRouteMarkers.push(destMarker);
@@ -1924,9 +2342,11 @@ function vmAddLocateButton(el, map) {
     btn.className  = 'vm-locate-widget';
     btn.type       = 'button';
     btn.title      = 'Meinen Standort anzeigen';
-    btn.innerHTML  = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>`;
+    btn.innerHTML  = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s6.5-4.2 6.5-10.2A6.5 6.5 0 1 0 5.5 11.8C5.5 17.8 12 22 12 22Z"/><circle cx="12" cy="11" r="2.2"/></svg>`;
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (!navigator.geolocation) {
             alert('Ihr Browser unterstützt keine Geolokalisierung.'); return;
         }
@@ -1935,12 +2355,14 @@ function vmAddLocateButton(el, map) {
             pos => {
                 btn.classList.remove('vm-locating');
                 const { longitude, latitude } = pos.coords;
-                map.flyTo({ center: [longitude, latitude], zoom: 15 });
-                new maplibregl.Marker({ color: '#2b7095' })
+                map.resize();
+                map.stop();
+                map.flyTo({ center: [longitude, latitude], zoom: 15, duration: 900 });
+                const userMarker = new maplibregl.Marker({ color: '#2b7095' })
                     .setLngLat([longitude, latitude])
                     .setPopup(new maplibregl.Popup().setText('Ihr Standort'))
-                    .addTo(map)
-                    .togglePopup();
+                    .addTo(map);
+                vmBindPopupA11y(userMarker, userMarker.getPopup(), el);
             },
             () => { btn.classList.remove('vm-locating'); }
         );
@@ -2086,6 +2508,7 @@ async function vmFetchNearby(el, map, filter, radius, labelAttr, lat, lng) {
                 .setLngLat([eLon, eLat])
                 .setPopup(new maplibregl.Popup({ offset: 22 }).setHTML(popupHtml))
                 .addTo(map);
+            vmBindPopupA11y(m, m.getPopup(), el);
 
             // Marker tracken für späteren Reset
             if (!el._vmNearbyMarkers) el._vmNearbyMarkers = [];
@@ -2109,6 +2532,7 @@ async function vmFetchNearby(el, map, filter, radius, labelAttr, lat, lng) {
             .setLngLat([lng, lat])
             .setPopup(new maplibregl.Popup().setText('Suchzentrum'))
             .addTo(map);
+        vmBindPopupA11y(locMarker, locMarker.getPopup(), el);
         if (!el._vmNearbyMarkers) el._vmNearbyMarkers = [];
         el._vmNearbyMarkers.push(locMarker);
 
@@ -2317,7 +2741,9 @@ function vmRenderGeoJson(el, map, data) {
             const m = new maplibregl.Marker(markerOpts).setLngLat([coord[0], coord[1]]);
             const popupHtml = buildPopup();
             if (popupHtml) {
-                m.setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml));
+                const popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml);
+                m.setPopup(popup);
+                vmBindPopupA11y(m, popup, el);
             }
             m.addTo(map);
         });
@@ -2367,10 +2793,11 @@ function vmRenderGeoJson(el, map, data) {
                 if (rows.length) content = `<table style="font-size:13px;border-collapse:collapse">${rows.join('')}</table>`;
             }
             if (!content) return;
-            new maplibregl.Popup()
+            const featurePopup = new maplibregl.Popup()
                 .setLngLat(e.lngLat)
                 .setHTML(content)
                 .addTo(map);
+            vmBindFeaturePopupA11y(map, featurePopup, el);
         });
         map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
@@ -2388,7 +2815,6 @@ function initOverflyDemo() {
     const el = document.getElementById('vm-overfly-map');
     if (!el || el._vmOverflyInit) return;
     el._vmOverflyInit = true;
-
     const pollTimer = setInterval(() => {
         if (!el._vmMap) return;
         clearInterval(pollTimer);
@@ -2407,6 +2833,43 @@ function initOverflyDemo() {
             map.once('load', () => vmStartBerlinOverfly(map));
         }
     }, 100);
+}
+
+/**
+ * Demo-Helper: steuert das globale Infofenster über die neue Element-API.
+ * Wird nur aktiv, wenn die Demo-Buttons vorhanden sind.
+ */
+function initCustomUiInfoDemo() {
+    const el = document.getElementById('vm-info-demo');
+    if (!el || el._vmInfoDemoInit) return;
+
+    const btnUpdate = document.getElementById('vm-info-update-btn');
+    const btnBottom = document.getElementById('vm-info-bottom-btn');
+    const btnHide = document.getElementById('vm-info-hide-btn');
+    if (!btnUpdate && !btnBottom && !btnHide) return;
+
+    el._vmInfoDemoInit = true;
+
+    if (btnUpdate) {
+        btnUpdate.addEventListener('click', () => {
+            const now = new Date().toLocaleTimeString();
+            el.setInfoHtml('<h4 style="margin:0 0 6px">Live-Update</h4><p style="margin:0">Stand: ' + now + '<br><small>Per JS ersetzt</small></p>');
+            el.showInfoWindow();
+        });
+    }
+
+    if (btnBottom) {
+        btnBottom.addEventListener('click', () => {
+            el.setInfoPosition('bottom-right');
+            el.showInfoWindow();
+        });
+    }
+
+    if (btnHide) {
+        btnHide.addEventListener('click', () => {
+            el.hideInfoWindow();
+        });
+    }
 }
 
 /**

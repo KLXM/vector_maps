@@ -163,8 +163,27 @@ worker-src blob:;
 | `interactive` | `true` | `interactive="false"` | Karte scrollbar/zoombar (Standard: aktiv). Mit `interactive="false"` deaktivieren |
 | `locate` | `false` | `locate` | Standort-Button anzeigen |
 | `fullscreen` | `false` | `fullscreen` | Fullscreen-Button anzeigen (Karte im Browser-Vollbild umschalten) |
+| `controls-position` | `top-right` | `controls-position="top-left"` | Position der MapLibre-Navigation (`top-left`, `top-right`, `bottom-left`, `bottom-right`) |
+| `fullscreen-position` | wie `controls-position` | `fullscreen-position="bottom-right"` | Position des Fullscreen-Buttons |
 | `no-navigation` | `false` | `no-navigation` | Zoom-/Kompass-Controls ausblenden |
 | `no-attribution` | `false` | `no-attribution` | Attributionszeile ausblenden |
+| `buttons-position` | `bottom-right` | `buttons-position="top-left"` | Basisposition für `locate`/`show-satellite` Buttons |
+| `locate-position` | wie `buttons-position` | `locate-position="bottom-left"` | Individuelle Position des Locate-Buttons |
+| `satellite-position` | wie `buttons-position` | `satellite-position="top-left"` | Individuelle Position des Satellit-Buttons |
+| `buttons-offset` | `10` | `buttons-offset="16"` | Außenabstand der Overlay-Buttons in px |
+| `buttons-gap` | `38` | `buttons-gap="44"` | Vertikaler Abstand zwischen Locate- und Satelliten-Button in derselben Ecke |
+| `popup-focus-mode` | `auto` | `popup-focus-mode="restore"` | Fokusverhalten beim Schließen von Popups: `restore` (zurück zum Auslöser), `canvas` (zur Karte), `none` (kein Fokuswechsel). Standard: Marker-Popups `restore`, Layer-Popups `canvas` |
+| `info-html` | – | `info-html="<strong>Info</strong>"` | Globales Infofenster innerhalb der Karte (HTML erlaubt) |
+| `info-position` | `top-left` | `info-position="bottom-right"` | Position des Infofensters (`top-left`, `top-right`, `bottom-left`, `bottom-right`) |
+| `info-offset` | `12` | `info-offset="20"` | Außenabstand des Infofensters in px |
+| `info-class` | – | `info-class="my-info-box"` | Zusätzliche CSS-Klasse für eigenes Styling |
+| `info-visible` | `true` | `info-visible="false"` | Infofenster ein-/ausblenden |
+| `info-closable` | `false` | `info-closable` | Schließen-Button im Infofenster anzeigen |
+| `route-panel-position` | `top-left` | `route-panel-position="bottom-right"` | Position des Route-Panels |
+| `route-panel-offset` | `12` | `route-panel-offset="18"` | Außenabstand des Route-Panels in px |
+| `route-panel-style` | – | `route-panel-style="glass"` | Vorgefertigte Panel-Skins: `glass`, `contrast`, `brand` |
+| `route-panel-layout` | `overlay` | `route-panel-layout="side-right"` | Layout des Route-Panels: `overlay` (in der Karte), `side-right`, `side-left` |
+| `route-panel-width` | `340` | `route-panel-width="360"` | Breite der Seiten-Spalte bei `side-right`/`side-left` |
 | `fly-to` | – | `fly-to="48.85,2.35"` | Kartenansicht nach dem Laden animiert zentrieren |
 | `min-zoom` | `0` | `min-zoom="5"` | Minimaler Zoom-Level |
 | `max-zoom` | `22` | `max-zoom="18"` | Maximaler Zoom-Level |
@@ -279,6 +298,83 @@ Zwei Möglichkeiten, ESRI World Imagery (kostenlos, kein API-Key) zu nutzen:
 Der `show-satellite` Toggle-Button erscheint unten rechts. Marker bleiben beim Wechsel erhalten, GeoJSON-Layer werden nach Rückkehr zur Vektorkarte automatisch neu geladen.
 
 > **Hinweis:** ESRI World Imagery und das Referenz-Overlay sind frei nutzbar (Lizenz: Esri Master License Agreement). Attribution wird automatisch gesetzt. Für gewerbliche Hochlast-Szenarien empfiehlt sich ein eigener Tile-Server.
+
+---
+
+## Accessibility: Popup-Fokus
+
+Für saubere Tastatur-Navigation (Tab-Reihenfolge) kann das Fokusverhalten nach dem Schließen eines Popups pro Karte gesteuert werden:
+
+```html
+<!-- Fokus springt zurück zum auslösenden Marker -->
+<vectormap ... popup-focus-mode="restore"></vectormap>
+
+<!-- Fokus geht zurück auf die Kartenfläche -->
+<vectormap ... popup-focus-mode="canvas"></vectormap>
+
+<!-- Kein automatischer Fokuswechsel nach dem Schließen -->
+<vectormap ... popup-focus-mode="none"></vectormap>
+```
+
+Standardverhalten ohne Attribut:
+
+- Marker-Popup: Fokus zurück zum Marker (`restore`)
+- Layer-/Feature-Popup ohne Marker-Trigger: Fokus auf Karte (`canvas`)
+
+---
+
+## Custom UI (CSS-Variablen + JS API)
+
+Die Overlay-UI ist pro Karte vollständig per CSS-Variablen anpassbar:
+
+```html
+<vectormap
+        center="52.52,13.405"
+        zoom="12"
+        height="420"
+        locate
+        show-satellite
+        buttons-position="top-left"
+        route-panel
+        route-panel-style="glass"
+        info-html="<strong>Service</strong><br>Mo-Fr 08:00-18:00"
+        style="
+            --vm-widget-size: 34px;
+            --vm-widget-radius: 10px;
+            --vm-widget-bg: #0f172a;
+            --vm-widget-color: #e2e8f0;
+            --vm-info-bg: rgba(15,23,42,.88);
+            --vm-info-color: #e2e8f0;
+            --vm-rp-accent: #5eead4;
+        ">
+</vectormap>
+```
+
+Infofenster lässt sich zusätzlich per JS steuern:
+
+```javascript
+const el = document.getElementById('my-map');
+el.setInfoHtml('<strong>Live-Update</strong><br>Stand: 12:30');
+el.setInfoPosition('bottom-right');
+el.showInfoWindow();
+el.hideInfoWindow();
+```
+
+Alternative ohne Attribut (Inline-Markup als Child):
+
+```html
+<vectormap center="51.43,6.77" zoom="12">
+    <div class="mapinfo" data-position="top-left" data-closable>
+        <strong>Kontakt</strong><br>
+        Mo-Fr 08:00-18:00
+    </div>
+</vectormap>
+```
+
+Optional für `.mapinfo`:
+- `data-position="top-left|top-right|bottom-left|bottom-right"`
+- `data-class="deine-klasse"`
+- `data-closable`
 
 ---
 

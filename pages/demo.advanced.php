@@ -1,6 +1,101 @@
 <?php
 // Erweiterte Features
 ?>
+
+<!-- BEISPIEL 7: Custom UI (Buttons, Infofenster, Route-Panel) -->
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <h3 class="panel-title">
+            <i class="rex-icon rex-icon-brush"></i>
+            Custom UI: Button-Styling, Platzierung, Infofenster, Route-Panel
+        </h3>
+    </div>
+    <div class="panel-body">
+        <div class="alert alert-info" style="margin-bottom:16px">
+            Alles in diesem Block ist pro Karte über Attribute und CSS-Variablen steuerbar: <code>buttons-position</code>,
+            <code>locate-position</code>, <code>satellite-position</code>, <code>controls-position</code>,
+            <code>info-html</code>, <code>info-position</code>, <code>route-panel-position</code>, <code>route-panel-style</code>.
+        </div>
+
+        <div class="row" style="margin-bottom:20px">
+            <div class="col-md-6">
+                <h4 style="margin-top:0">7a. Buttons links oben + eigenes Styling</h4>
+                <pre style="font-size:11px">&lt;vectormap
+  center="52.52,13.405" zoom="12" height="320"
+  locate show-satellite
+  controls-position="top-left"
+  buttons-position="top-left"
+  style="--vm-widget-size:34px;--vm-widget-radius:10px;
+         --vm-widget-bg:#0f172a;--vm-widget-color:#e2e8f0;
+         --vm-widget-hover-bg:#1e293b;--vm-widget-hover-color:#93c5fd;
+         --vm-widget-active-bg:#2563eb;"&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    center="52.52,13.405" zoom="12" height="320"
+                    locate show-satellite
+                    controls-position="top-left"
+                    buttons-position="top-left"
+                    style="--vm-widget-size:34px;--vm-widget-radius:10px;--vm-widget-bg:#0f172a;--vm-widget-color:#e2e8f0;--vm-widget-hover-bg:#1e293b;--vm-widget-hover-color:#93c5fd;--vm-widget-active-bg:#2563eb;">
+                </vectormap>
+            </div>
+            <div class="col-md-6">
+                <h4 style="margin-top:0">7b. Globales Infofenster per Attribut + CSS</h4>
+                <pre style="font-size:11px">&lt;vectormap
+  id="vm-info-demo"
+  center="51.43,6.77" zoom="12" height="320"
+  info-position="top-left" info-closable
+  info-html="&lt;h4&gt;Kundencenter&lt;/h4&gt;&lt;p&gt;Mo-Fr 08:00-18:00&lt;/p&gt;"
+  style="--vm-info-max-width:260px;--vm-info-bg:rgba(255,255,255,.92);
+         --vm-info-radius:14px;--vm-info-shadow:0 14px 30px rgba(0,0,0,.25);"&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    id="vm-info-demo"
+                    center="51.43,6.77" zoom="12" height="320"
+                    info-position="top-left"
+                    info-closable
+                    info-html="<h4 style='margin:0 0 6px'>Kundencenter</h4><p style='margin:0'>Mo-Fr 08:00-18:00<br>📞 0203-123456</p>"
+                    style="--vm-info-max-width:260px;--vm-info-bg:rgba(255,255,255,.92);--vm-info-radius:14px;--vm-info-shadow:0 14px 30px rgba(0,0,0,.25);">
+                </vectormap>
+                <p class="text-muted" style="font-size:12px;margin-top:6px">JS-API: <code>document.getElementById('vm-info-demo').setInfoHtml('&lt;b&gt;Neu&lt;/b&gt;')</code></p>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+                    <button type="button" class="btn btn-xs btn-default" id="vm-info-update-btn">Info aktualisieren</button>
+                    <button type="button" class="btn btn-xs btn-default" id="vm-info-bottom-btn">Info unten rechts</button>
+                    <button type="button" class="btn btn-xs btn-default" id="vm-info-hide-btn">Info ausblenden</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" style="margin-bottom:20px">
+            <div class="col-md-12">
+                <h4 style="margin-top:0">7f. Routing neben der Karte (Spalten-Layout)</h4>
+                <p class="text-muted" style="font-size:13px;margin-bottom:8px">Mit <code>route-panel-layout="side-right"</code> erscheint das Routing als eigene Spalte neben der Karte statt als Overlay.</p>
+                <pre style="font-size:11px">&lt;vectormap
+  center="51.165691,10.451526"
+  zoom="6"
+  height="460"
+  route-panel
+  route-panel-layout="side-right"
+  route-panel-width="360"
+  route-panel-style="brand"
+  route-from="Berlin HBF"
+  route-to="Leipzig Hauptbahnhof"&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    center="51.165691,10.451526"
+                    zoom="6"
+                    height="460"
+                    route-panel
+                    route-panel-layout="side-right"
+                    route-panel-width="360"
+                    route-panel-style="brand"
+                    route-from="Berlin HBF"
+                    route-to="Leipzig Hauptbahnhof">
+                </vectormap>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- BEISPIEL 8: Custom Marker / Individuelle Pins -->
 <div class="panel panel-default">
     <div class="panel-heading">

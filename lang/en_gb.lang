@@ -4,6 +4,7 @@ vector_maps_demo_overview = Overview
 vector_maps_demo_basic = Basic Maps & Routing
 vector_maps_demo_nearby = Nearby Search
 vector_maps_demo_advanced = Advanced Features
+vector_maps_demo_skins = Design Skins & UI Styling
 vector_maps_themes = Themes
 
 vector_maps_settings_frontend_heading = Frontend Integration

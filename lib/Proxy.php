@@ -174,18 +174,27 @@ class Proxy
         }
 
         $ch = curl_init();
+        $userAgent = 'REDAXO-VectorMaps-Proxy/1.1 (+https://www.redaxo.org/)';
+        $commonHeaders = ['Accept: */*'];
+        if ($host === 'nominatim.openstreetmap.org') {
+            $server = (string) \rex::getServer();
+            if ('' !== $server) {
+                $commonHeaders[] = 'Referer: ' . rtrim($server, '/') . '/';
+            }
+        }
+
+        curl_setopt($ch, CURLOPT_USERAGENT, $userAgent);
         if (null !== $overpassQueryData) {
             $overpassUrl = ($parts['scheme'] ?? 'https') . '://' . $host . $path;
             curl_setopt($ch, CURLOPT_URL, $overpassUrl);
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, 'data=' . $overpassQueryData);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'curl/8.7.1');
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Accept: */*',
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge($commonHeaders, [
                 'Content-Type: application/x-www-form-urlencoded',
-            ]);
+            ]));
         } else {
             curl_setopt($ch, CURLOPT_URL, $safeUrl);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $commonHeaders);
         }
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -202,7 +211,7 @@ class Proxy
         curl_close($ch);
 
         if ($httpCode !== 200 || false === $content) {
-            $status = ($httpCode >= 400 && $httpCode <= 599) ? $httpCode : rex_response::HTTP_BAD_GATEWAY;
+            $status = ($httpCode >= 400 && $httpCode <= 599) ? $httpCode : 502;
             rex_response::setStatus($status);
             rex_response::sendContent("Proxy upstream failed (HTTP $httpCode).");
             exit;

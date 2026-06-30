@@ -98,6 +98,12 @@
             OpenFreeMap &middot; DSGVO-konform via REDAXO-Proxy &middot; kein API-Key erforderlich
         </p>
 
+        <div class="alert alert-info" style="margin-top:10px;margin-bottom:0">
+            <strong>Accessibility:</strong> Popup-Fokus kann pro Karte über <code>popup-focus-mode</code> gesteuert werden
+            (<code>restore</code> | <code>canvas</code> | <code>none</code>).
+            Details und Live-Beispiel siehe Basic-Demos.
+        </div>
+
     </div>
 </div>
 

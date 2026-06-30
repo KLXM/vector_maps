@@ -37,8 +37,22 @@
                         <tr><td><code>3d</code></td><td><code>false</code></td><td><code>3d</code></td><td>3D-Gebäude aktivieren (Boolean-Attribut)</td></tr>
                         <tr><td><code>locate</code></td><td><code>false</code></td><td><code>locate</code></td><td>Standort-Button einblenden (Boolean-Attribut)</td></tr>
                         <tr><td><code>fullscreen</code></td><td><code>false</code></td><td><code>fullscreen</code></td><td>Vollbild-Button einblenden (Boolean-Attribut)</td></tr>
+                        <tr><td><code>controls-position</code></td><td><code>top-right</code></td><td><code>controls-position="top-left"</code></td><td>Position der MapLibre-Navigation: <code>top-left</code>, <code>top-right</code>, <code>bottom-left</code>, <code>bottom-right</code></td></tr>
+                        <tr><td><code>fullscreen-position</code></td><td><em>wie controls-position</em></td><td><code>fullscreen-position="bottom-right"</code></td><td>Position des Fullscreen-Buttons</td></tr>
                         <tr><td><code>no-navigation</code></td><td><code>false</code></td><td><code>no-navigation</code></td><td>Zoom-/Dreh-Buttons ausblenden (Boolean-Attribut)</td></tr>
                         <tr><td><code>no-attribution</code></td><td><code>false</code></td><td><code>no-attribution</code></td><td>Quellenangabe ausblenden (Boolean-Attribut)</td></tr>
+                        <tr><td><code>buttons-position</code></td><td><code>bottom-right</code></td><td><code>buttons-position="top-left"</code></td><td>Basisposition der Overlay-Buttons (<code>locate</code>, <code>show-satellite</code>)</td></tr>
+                        <tr><td><code>locate-position</code></td><td><em>wie buttons-position</em></td><td><code>locate-position="bottom-left"</code></td><td>Individuelle Position des Locate-Buttons</td></tr>
+                        <tr><td><code>satellite-position</code></td><td><em>wie buttons-position</em></td><td><code>satellite-position="top-left"</code></td><td>Individuelle Position des Satelliten-Buttons</td></tr>
+                        <tr><td><code>buttons-offset</code></td><td><code>10</code></td><td><code>buttons-offset="16"</code></td><td>Abstand der Overlay-Buttons vom Rand (px)</td></tr>
+                        <tr><td><code>buttons-gap</code></td><td><code>38</code></td><td><code>buttons-gap="44"</code></td><td>Vertikaler Abstand zwischen Locate- und Satelliten-Button (bei gleicher Ecke)</td></tr>
+                        <tr><td><code>popup-focus-mode</code></td><td><em>auto</em></td><td><code>popup-focus-mode="restore"</code></td><td>Fokus nach Popup-Schließen: <code>restore</code> (Auslöser), <code>canvas</code> (Karte), <code>none</code> (kein Wechsel). Default: Marker <code>restore</code>, Layer <code>canvas</code></td></tr>
+                        <tr><td><code>info-html</code></td><td>&ndash;</td><td><code>info-html="&lt;strong&gt;Info&lt;/strong&gt;"</code></td><td>Globales Infofenster innerhalb der Karte (HTML erlaubt)</td></tr>
+                        <tr><td><code>info-position</code></td><td><code>top-left</code></td><td><code>info-position="bottom-right"</code></td><td>Position des Infofensters</td></tr>
+                        <tr><td><code>info-offset</code></td><td><code>12</code></td><td><code>info-offset="20"</code></td><td>Abstand des Infofensters vom Rand (px)</td></tr>
+                        <tr><td><code>info-class</code></td><td>&ndash;</td><td><code>info-class="my-info"</code></td><td>Zusätzliche CSS-Klasse für Infofenster-Design</td></tr>
+                        <tr><td><code>info-visible</code></td><td><code>true</code></td><td><code>info-visible="false"</code></td><td>Infofenster ein-/ausblenden</td></tr>
+                        <tr><td><code>info-closable</code></td><td><code>false</code></td><td><code>info-closable</code></td><td>Schließen-Button im Infofenster aktivieren</td></tr>
                         <tr><td><code>interactive</code></td><td><code>"true"</code></td><td><code>interactive="false"</code></td><td>Statische Karte (kein Scrollen/Ziehen) &ndash; Wert <code>"false"</code> als String übergeben</td></tr>
                         <tr><td><code>markers</code></td><td>&ndash;</td><td><code>markers='[{"lat":52.52,"lng":13.4,"popup":"Hi"}]'</code></td><td>JSON-Array mit Markern &mdash; Standard-Properties: <code>lat</code>, <code>lng</code>, <code>popup</code>, <code>color</code></td></tr>
                         <tr><td></td><td></td><td><code>"icon":"/assets/pin.svg"</code></td><td>Custom-Pin &mdash; Bild-URL (PNG, SVG) → wird als <code>&lt;img&gt;</code>-Element gerendert</td></tr>
@@ -57,6 +71,11 @@
                         <tr><td><code>route-panel</code></td><td><code>false</code></td><td><code>route-panel</code></td><td>Interaktives Adresssuch-Panel einblenden (Boolean-Attribut) &ndash; Nutzer k&ouml;nnen Von/Nach-Adressen direkt in der Karte eingeben</td></tr>
                         <tr><td><code>route-to-locked</code></td><td><code>false</code></td><td><code>route-to-locked</code></td><td>Zieladresse fixieren: Feld readonly, kein Autocomplete (Boolean-Attribut) &ndash; ideal für Anfahrtskarten mit festem Ziel</td></tr>
                         <tr><td><code>route-no-steps</code></td><td><code>false</code></td><td><code>route-no-steps</code></td><td>Abbiegehinweise (Turn-by-Turn) ausblenden (Boolean-Attribut)</td></tr>
+                        <tr><td><code>route-panel-position</code></td><td><code>top-left</code></td><td><code>route-panel-position="bottom-right"</code></td><td>Position des Route-Panels</td></tr>
+                        <tr><td><code>route-panel-offset</code></td><td><code>12</code></td><td><code>route-panel-offset="18"</code></td><td>Abstand des Route-Panels vom Rand (px)</td></tr>
+                        <tr><td><code>route-panel-style</code></td><td>&ndash;</td><td><code>route-panel-style="glass"</code></td><td>Panel-Presets: <code>glass</code>, <code>contrast</code>, <code>brand</code></td></tr>
+                        <tr><td><code>route-panel-layout</code></td><td><code>overlay</code></td><td><code>route-panel-layout="side-right"</code></td><td>Panel als Overlay in der Karte oder als Spalte neben der Karte (<code>side-right</code>/<code>side-left</code>)</td></tr>
+                        <tr><td><code>route-panel-width</code></td><td><code>340</code></td><td><code>route-panel-width="360"</code></td><td>Breite der Seiten-Spalte bei <code>side-right</code>/<code>side-left</code></td></tr>
                         <tr><td><code>nearby</code></td><td>&ndash;</td><td><code>nearby="amenity=charging_station"</code></td><td>Overpass-Filter für POI-Umgebungssuche. Mehrere mit <code>|</code> trennen: <code>amenity=fuel|amenity=charging_station</code></td></tr>
                         <tr><td><code>nearby-radius</code></td><td><code>1000</code></td><td><code>nearby-radius="2000"</code></td><td>Suchradius in Metern (Standard: 1000&thinsp;m)</td></tr>
                         <tr><td><code>nearby-label</code></td><td><em>OSM-Tags</em></td><td><code>nearby-label="Ladestation"</code></td><td>Fallback-Label für Marker-Popups wenn kein <code>name</code>-Tag vorhanden</td></tr>
@@ -139,6 +158,31 @@
                     height="280"
                     cluster
                     markers='[{"lat":52.52,"lng":13.405,"popup":"Berlin"},{"lat":48.14,"lng":11.58,"popup":"München"},{"lat":53.55,"lng":10.0,"popup":"Hamburg"},{"lat":51.51,"lng":7.47,"popup":"Dortmund"},{"lat":50.94,"lng":6.96,"popup":"Köln"},{"lat":53.08,"lng":8.80,"popup":"Bremen"},{"lat":51.34,"lng":12.38,"popup":"Leipzig"},{"lat":48.78,"lng":9.18,"popup":"Stuttgart"},{"lat":51.23,"lng":6.77,"popup":"Düsseldorf"},{"lat":49.45,"lng":11.08,"popup":"Nürnberg"},{"lat":52.37,"lng":9.73,"popup":"Hannover"},{"lat":51.48,"lng":11.97,"popup":"Halle"},{"lat":47.99,"lng":7.84,"popup":"Freiburg"},{"lat":50.07,"lng":8.24,"popup":"Wiesbaden"},{"lat":54.32,"lng":10.13,"popup":"Kiel"}]'>
+                </vectormap>
+            </div>
+        </div>
+
+        <!-- BEISPIEL 3c: Accessibility Popup-Fokus -->
+        <div class="row" style="margin-bottom:24px">
+            <div class="col-md-12">
+                <h4 style="margin-top:0">3c. Accessibility: Popup-Fokus <span class="label label-primary">popup-focus-mode</span></h4>
+                <p class="text-muted" style="font-size:13px;margin-bottom:8px">Teste per Tastatur: Mit <kbd>Tab</kbd> zum Marker, mit <kbd>Enter</kbd> Popup öffnen, mit <kbd>Esc</kbd> oder Close-Button schließen. Bei <code>popup-focus-mode="restore"</code> springt der Fokus sauber auf den auslösenden Marker zurück.</p>
+                <pre style="font-size:12px">&lt;vectormap
+    center="51.165691,10.451526"
+    zoom="5"
+    height="280"
+    popup-focus-mode="restore"
+    markers='[
+      {"lat":52.52,"lng":13.405,"popup":"&lt;b&gt;Berlin&lt;/b&gt;"},
+      {"lat":48.14,"lng":11.58,"popup":"&lt;b&gt;M&uuml;nchen&lt;/b&gt;"}
+    ]'&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    center="51.165691,10.451526"
+                    zoom="5"
+                    height="280"
+                    popup-focus-mode="restore"
+                    markers='[{"lat":52.52,"lng":13.405,"popup":"<b>Berlin</b>"},{"lat":48.14,"lng":11.58,"popup":"<b>München</b>"}]'>
                 </vectormap>
             </div>
         </div>
