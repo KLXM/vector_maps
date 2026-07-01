@@ -61,6 +61,38 @@
     margin-right: 12px;
 }
 
+.vm-theme-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 12px;
+    margin-bottom: 0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.vm-theme-select-wrap span {
+    white-space: nowrap;
+}
+
+.vm-theme-select-wrap select {
+    min-width: 120px;
+    height: 28px;
+    padding: 3px 8px;
+}
+
+.vm-theme-select-wrap select.vm-theme-select--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.vm-theme-select-note {
+    font-size: 11px;
+    color: #8a6d3b;
+    min-width: 0;
+    white-space: nowrap;
+}
+
 .vm-close-btn {
     background: none;
     border: none;

@@ -2,15 +2,32 @@
 // Vektorkarten Demo - Uebersicht & Einbindung
 ?>
 <?php
+use KLXM\VectorMaps\BackendHero;
+use KLXM\VectorMaps\ThemeManager;
+
 // no addon var needed, all text is hardcoded for simplicity
+
+$addon = rex_addon::get('vector_maps');
+$customThemeCount = count(ThemeManager::getCustomThemes());
+
+echo BackendHero::render(
+    'overview',
+    'Vector Maps · Übersicht',
+    'Demos, Einbindung und Integrationen',
+    'Hier findest du die Startseite mit Hauptdemo, Frontend-Einbindung sowie dem Überblick zu Picker, YForm und Builder.',
+    ['Hauptdemo', 'Frontend-Einbindung', 'Integrationen'],
+    [
+        ['value' => $addon->getVersion(), 'label' => 'Release'],
+        ['value' => '6', 'label' => 'Demo-Seiten'],
+        ['value' => (string) $customThemeCount, 'label' => 'Eigene Themes'],
+    ]
+);
 ?>
 <div class="panel panel-default">
-    <div class="panel-heading">
+    <div class="panel-heading vm-panel-heading--soft">
         <h3 class="panel-title">
             <i class="rex-icon rex-icon-map"></i>
-            Vektorkarten Demo
-            <span class="label label-success" style="margin-left:6px;font-weight:normal;font-size:11px">MapLibre GL JS</span>
-            <span class="label label-default" style="margin-left:4px;font-weight:normal;font-size:11px">OpenFreeMap</span>
+            Live-Karte &amp; Schaltzentrale
         </h3>
     </div>
     <div class="panel-body">
@@ -104,6 +121,11 @@
             Details und Live-Beispiel siehe Basic-Demos.
         </div>
 
+        <div class="alert alert-warning" style="margin-top:10px;margin-bottom:0">
+            <strong>Neu:</strong> Für allgemeinen Input-Ersatz, YForm und Builder gibt es jetzt eine eigene Unterseite
+            <a href="<?= rex_url::backendPage('vector_maps/demo/geocoding') ?>"><strong>Geocoding &amp; Picker</strong></a>.
+        </div>
+
     </div>
 </div>
 
@@ -111,7 +133,7 @@
      FRONTEND-EINBINDUNG
      ================================================================ -->
 <div class="panel panel-info">
-    <div class="panel-heading">
+    <div class="panel-heading vm-panel-heading--soft">
         <h3 class="panel-title">
             <i class="rex-icon rex-icon-code"></i>
             Frontend-Einbindung &mdash; So kommt die Karte auf die Website
@@ -202,23 +224,53 @@
 </div>
 
 <div class="panel panel-default">
-    <div class="panel-heading">
+    <div class="panel-heading vm-panel-heading--soft">
         <h3 class="panel-title">
             <i class="rex-icon rex-icon-edit"></i>
-            Koordinaten-Picker Demo
+            Picker, YForm &amp; Builder Demo
         </h3>
     </div>
     <div class="panel-body">
-        <p>Klicke auf den Button, um den Koordinaten-Picker zu öffnen. Die gewählten Koordinaten werden ins Textfeld übernommen.</p>
+        <p>Die neue Integrationsschicht baut auf demselben Karten-Picker auf: als normales Input-Feld, als YForm-Value und als Builder-Element.</p>
 
-        <div class="form-group">
-            <label for="vm-demo-picker-input">Koordinaten (Lat,Lng)</label>
-            <input type="text"
-                   id="vm-demo-picker-input"
-                   class="form-control"
-                   placeholder="51.165691,10.451526"
-                   data-vector-picker="1">
-            <p class="help-block">Wähle einen Ort auf der Karte – die Koordinaten werden automatisch eingetragen.</p>
+        <div class="row" style="margin-bottom:18px">
+            <div class="col-md-6">
+                <h4 style="margin-top:0">1. Allgemeiner Input-Ersatz</h4>
+                <div class="form-group">
+                    <label for="vm-demo-picker-input">Koordinaten (Standard)</label>
+                    <input type="text"
+                           id="vm-demo-picker-input"
+                           class="form-control"
+                           placeholder="51.165691,10.451526"
+                           data-vector-picker="1">
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label for="vm-demo-picker-themed">Koordinaten mit Bright + Warm</label>
+                    <input type="text"
+                           id="vm-demo-picker-themed"
+                           class="form-control"
+                           value="52.520008,13.404954"
+                           data-vector-picker="1"
+                           data-vector-picker-style="bright"
+                           data-vector-picker-theme="warm"
+                           data-vector-picker-themes='{"dark":"Dark","redaxo":"REDAXO","bright":"Bright","warm":"Warm","mono":"Mono"}'>
+                </div>
+                <p class="help-block">Der zweite Picker startet direkt mit anderem Kartenstil und voreingestelltem Theme.</p>
+            </div>
+            <div class="col-md-6">
+                <h4 style="margin-top:0">2. YForm-Value</h4>
+                <pre style="font-size:12px">value|vector_map_location|location|Standort|liberty|warm|1</pre>
+                <p class="text-muted" style="font-size:12px">Speichert <code>lat,lng</code> als String und rendert direkt den Vector-Maps-Picker mit Adresssuche.</p>
+
+                <h4>3. Builder-Element</h4>
+                <pre style="font-size:12px">Element: <strong>Vector Map</strong>
+- Koordinaten via Picker
+- Kartenstil wählbar
+- Theme wählbar
+- Marker, Popup, Info-Fenster
+- Templates für uikit, bootstrap, plain</pre>
+                <p class="text-muted" style="font-size:12px;margin-bottom:0">Das Builder-Element nutzt denselben Picker-Feldtyp wie der allgemeine Input-Ersatz.</p>
+            </div>
         </div>
 
     </div>

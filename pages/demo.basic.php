@@ -1,10 +1,21 @@
 <?php
 // Grundkarten, Marker, Routing - Beispiele 1-6
 ?>
+<?php
+use KLXM\VectorMaps\BackendHero;
+
+echo BackendHero::renderCompact(
+    'basic',
+    'Vector Maps · Grundkarten',
+    'Web-Component, Marker und Routing',
+    'Diese Seite zeigt die Grundbausteine der Komponente: Attribute, Marker, Cluster, Popups und Routing-Beispiele.',
+    ['Attribute', 'Marker', 'Cluster', 'Routing']
+);
+?>
 <div class="panel panel-default">
     <div class="panel-heading">
         <h3 class="panel-title">
-            <i class="rex-icon rex-icon-vector-maps"></i>
+            <i class="vector-maps-icon-logo"></i>
             <code>&lt;vectormap&gt;</code> Web Component
             <small class="text-muted" style="font-size:12px"> &mdash; Karten per HTML-Attribut konfigurieren</small>
         </h3>

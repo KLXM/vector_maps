@@ -5,6 +5,7 @@ namespace KLXM\VectorMaps;
 use rex_addon;
 use rex_dir;
 use rex_file;
+use rex_i18n;
 use rex_request;
 use rex_response;
 
@@ -14,6 +15,15 @@ use rex_response;
  */
 class ThemeManager
 {
+    /** Eingebaute Theme-Namen fuer UI-Auswahl */
+    public const BUILT_IN_THEME_CHOICES = [
+        'dark' => 'Dark',
+        'redaxo' => 'REDAXO',
+        'bright' => 'Bright',
+        'warm' => 'Warm',
+        'mono' => 'Mono',
+    ];
+
     /** Alle erlaubten Farb-Schlüssel eines Themes */
     public const COLOR_KEYS = [
         'land', 'water', 'green', 'farmland',
@@ -83,6 +93,27 @@ class ThemeManager
         }
         $data = json_decode($raw, true);
         return is_array($data) ? $data : null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function getThemeChoices(bool $includeNone = false): array
+    {
+        $choices = $includeNone ? ['' => rex_i18n::msg('vector_maps_picker_no_theme')] : [];
+
+        foreach (self::BUILT_IN_THEME_CHOICES as $key => $label) {
+            $choices[$key] = $label;
+        }
+
+        foreach (self::getCustomThemes() as $name => $theme) {
+            $label = (string) ($theme['name'] ?? $name);
+            if (!isset($choices[$name])) {
+                $choices[$name] = $label;
+            }
+        }
+
+        return $choices;
     }
 
     /**

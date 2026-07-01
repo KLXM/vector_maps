@@ -1,5 +1,7 @@
 <?php
 
+use KLXM\VectorMaps\BackendHero;
+
 $addon = rex_addon::get('vector_maps');
 
 $func = rex_request('func', 'string', '');
@@ -44,6 +46,39 @@ if ('save' === $func && rex::getUser()->isAdmin()) {
 $loadFrontend = (int) $addon->getConfig('load_frontend', 1);
 $extraDomains = (array) $addon->getConfig('proxy_extra_domains', []);
 $extraDomainsText = implode("\n", $extraDomains);
+
+// --- Cache-Größe berechnen ---
+$cacheDir   = rex_path::addonCache('vector_maps');
+$cacheBytes = 0;
+$cacheFiles = 0;
+if (is_dir($cacheDir)) {
+    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($cacheDir, FilesystemIterator::SKIP_DOTS));
+    foreach ($it as $file) {
+        if ($file->isFile()) {
+            $cacheBytes += $file->getSize();
+            ++$cacheFiles;
+        }
+    }
+}
+$cacheSizeHuman = match(true) {
+    $cacheBytes >= 1_073_741_824 => number_format($cacheBytes / 1_073_741_824, 2) . ' GB',
+    $cacheBytes >= 1_048_576     => number_format($cacheBytes / 1_048_576, 2)     . ' MB',
+    $cacheBytes >= 1_024         => number_format($cacheBytes / 1_024, 2)          . ' KB',
+    default                      => $cacheBytes . ' Byte',
+};
+
+echo BackendHero::render(
+    'settings',
+    'Vector Maps · Einstellungen',
+    'Frontend, Proxy und Cache steuern',
+    'Dieser Bereich enthält nur die Betriebsparameter des AddOns: Asset-Laden im Frontend, erlaubte Proxy-Domains und den Tile-Cache.',
+    ['Frontend-Assets', 'Proxy-Domains', 'Tile-Cache'],
+    [
+        ['value' => $loadFrontend === 1 ? 'Auto' : 'Manuell', 'label' => 'Frontend-Assets'],
+        ['value' => (string) count($extraDomains), 'label' => 'Zusatz-Domains'],
+        ['value' => number_format($cacheFiles, 0, ',', '.'), 'label' => 'Cache-Dateien'],
+    ]
+);
 
 // --- Einstellungsformular ---
 $formContent = '
@@ -90,29 +125,9 @@ $formContent = '
 
 $formFragment = new rex_fragment();
 $formFragment->setVar('class', 'edit', false);
-$formFragment->setVar('title', $addon->i18n('settings'), false);
+$formFragment->setVar('title', '<span class="vm-panel-title--soft"><i class="rex-icon fa-sliders"></i>' . $addon->i18n('settings') . '</span>', false);
 $formFragment->setVar('body', $formContent, false);
 echo $formFragment->parse('core/page/section.php');
-
-// --- Cache-Größe berechnen ---
-$cacheDir   = rex_path::addonCache('vector_maps');
-$cacheBytes = 0;
-$cacheFiles = 0;
-if (is_dir($cacheDir)) {
-    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($cacheDir, FilesystemIterator::SKIP_DOTS));
-    foreach ($it as $file) {
-        if ($file->isFile()) {
-            $cacheBytes += $file->getSize();
-            ++$cacheFiles;
-        }
-    }
-}
-$cacheSizeHuman = match(true) {
-    $cacheBytes >= 1_073_741_824 => number_format($cacheBytes / 1_073_741_824, 2) . ' GB',
-    $cacheBytes >= 1_048_576     => number_format($cacheBytes / 1_048_576, 2)     . ' MB',
-    $cacheBytes >= 1_024         => number_format($cacheBytes / 1_024, 2)          . ' KB',
-    default                      => $cacheBytes . ' Byte',
-};
 
 // --- Cache-Bereich ---
 $cacheContent  = '<p>' . $addon->i18n('settings_info') . '</p>';
@@ -125,6 +140,6 @@ $cacheContent .= '<a class="btn btn-default" href="' . rex_url::currentBackendPa
     . '</a>';
 
 $cacheFragment = new rex_fragment();
-$cacheFragment->setVar('title', 'Tile-Cache', false);
+$cacheFragment->setVar('title', '<span class="vm-panel-title--soft"><i class="rex-icon rex-icon-database"></i>Tile-Cache</span>', false);
 $cacheFragment->setVar('body', $cacheContent, false);
 echo $cacheFragment->parse('core/page/section.php');

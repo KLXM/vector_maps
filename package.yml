@@ -1,5 +1,5 @@
 package: vector_maps
-version: '1.1.5'
+version: '1.2.0'
 author: 'KLXM Crossmedia GmbH'
 supportpage: 'https://github.com/KLXM/vector_maps'
 requires:
@@ -9,16 +9,15 @@ requires:
 page:
   title: 'translate:vector_maps_title'
   perm: 'vector_maps[]'
-  icon: 'rex-icon rex-icon-vector-maps'
+  icon: 'rex-icon vector-maps-icon-logo'
   subpages:
-    readme:
-      title: 'translate:vector_maps_readme'
-      subPath: README.md
     demo:
       title: 'translate:vector_maps_demo'
       subpages:
         overview:
           title: 'translate:vector_maps_demo_overview'
+        geocoding:
+          title: 'translate:vector_maps_demo_geocoding'
         basic:
           title: 'translate:vector_maps_demo_basic'
         nearby:
@@ -31,3 +30,6 @@ page:
       title: 'translate:vector_maps_themes'
     settings:
       title: 'translate:vector_maps_settings'
+    readme:
+      title: 'translate:vector_maps_readme'
+      subPath: README.md

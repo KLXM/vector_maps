@@ -11,6 +11,9 @@ Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, volls
 - **Web Component** `<vectormap>` – direkt im Template oder Modul verwendbar, kein JavaScript nötig
 - **Lazy-Init + Build-Queue** – WebGL-Kontext wird sequentiell für jede Karte aufgebaut, erst wenn sie in den Viewport scrollt (verhindert Browserlimit von ~10 parallelen WebGL-Kontexten)
 - **Backend-Koordinatenpicker** – Koordinatenfelder in REDAXO-Modulen mit Karte und Adresssuche
+- **Allgemeiner Geodaten-Picker** – framework-unabhängiger Kartenpicker für normale Input-Felder, auch außerhalb von Modulen
+- **YForm-Integration** – eigenes Value-Feld `vector_map_location` mit Picker, Stil- und Theme-Vorgabe
+- **Builder-Integration** – eigener Feldtyp `vector_map_picker` und Element `Vector Map` für `plain`, `bootstrap` und `uikit`
 - **Routing** – Koordinaten oder Adressen, mit Auto-, Fuß- und Fahrradmodus (OSRM)
 - **Interaktives Routenpanel** – Von/Nach-Adressen direkt auf der Karte eingeben (Autocomplete); GPS-Locate-Button übernimmt den aktuellen Gerätestandort als Startpunkt
 - **Umgebungssuche (nearby)** – POI-Suche via Overpass API (z. B. Ladestationen, Restaurants)
@@ -110,6 +113,87 @@ $popup = rex_escape(REX_VALUE[4]);
     markers='[{"lat":<?= $lat ?>,"lng":<?= $lng ?>,"popup":"<?= $popup ?>"}]'>
 </vectormap>
 ```
+
+### Allgemeiner Koordinaten-Picker für Input-Felder
+
+Ein normales Input-Feld kann framework-unabhängig durch den Vector-Maps-Picker erweitert werden.
+
+HTML:
+
+```html
+<input
+    type="text"
+    name="location"
+    value="52.520008,13.404954"
+    data-vector-picker="1"
+    data-vector-picker-style="bright">
+```
+
+Optional per PHP-Helper:
+
+```php
+<?php
+echo \KLXM\VectorMaps\Picker\PickerWidget::factory('location')
+    ->setValue('52.520008,13.404954')
+    ->setMapStyle('bright')
+    ->setTheme('warm')
+    ->parse();
+```
+
+Das Input-Feld wird automatisch mit einem Picker-Button erweitert. Im Modal können Koordinaten per Klick, Drag oder Adresssuche gesetzt werden.
+
+Hinweis: Bei <code>data-vector-picker-style="satellite"</code> wird die Theme-Auswahl bewusst deaktiviert, da Themes nur auf Vektorstile wirken.
+
+Für einen schnellen Funktionstest gibt es im Backend die Seite <strong>Demo → Geocoding</strong> mit Beispielen für Picker, YForm und Builder.
+
+### YForm-Feld: vector_map_location
+
+Für YForm steht ein eigenes Value-Feld zur Verfügung, das Koordinaten als `lat,lng` speichert und den Vector-Maps-Picker direkt im Formular rendert.
+
+Beispiel:
+
+```text
+value|vector_map_location|location|Standort|liberty|warm|1
+```
+
+Schema:
+
+```text
+value|vector_map_location|name|label|[map_style]|[theme]|[required]
+```
+
+Beispiel mit Notice:
+
+```text
+value|vector_map_location|location|Standort|bright|redaxo|1|Bitte Position auf der Karte wählen
+```
+
+Das Feld eignet sich besonders für Kontakt-, Filial- oder Event-Datensätze, weil Redakteure die Position nicht manuell als Zahlenpaar pflegen müssen.
+
+### Builder-Element: Vector Map
+
+Das AddOn registriert ein eigenes Builder-Element `Vector Map` und einen eigenen Builder-Feldtyp für den Koordinaten-Picker.
+
+Merkmale:
+- Theme-Auswahl direkt im Element
+- Basis-Kartenstil wählbar (`liberty`, `bright`, `positron`, `satellite`)
+- Marker + Popup
+- optionales globales Infofenster
+- Controls, Locate, Satellit und Fullscreen
+- optionaler Routenplaner mit Start/Ziel, Modus, fixiertem Ziel und Panel-Layout
+- Templates für `uikit`, `bootstrap` und `plain`
+
+Der Koordinatenwert wird im Builder über den gleichen Picker gesetzt wie bei normalen Input-Feldern.
+
+Für typische Kontaktseiten kann das Element jetzt ohne Sondercode als Anfahrtskarte genutzt werden:
+
+- `route_panel` blendet das interaktive Von/Nach-Panel ein
+- `route_to` setzt ein festes Ziel als Adresse oder `lat,lng`
+- `route_to_locked` fixiert dieses Ziel für Redakteure und Besucher
+- `route_panel_layout` erlaubt Overlay oder Seiten-Spalte links/rechts
+- `route_panel_style` übernimmt die vorhandenen Panel-Skins `glass`, `contrast` und `brand`
+
+Damit eignet sich dasselbe Element sowohl für eine einfache Marker-Karte als auch für eine vollwertige Anfahrts- oder Routenkarte.
 
 ### CSP-Hinweis (Content-Security-Policy)
 

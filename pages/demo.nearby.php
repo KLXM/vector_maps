@@ -1,6 +1,17 @@
 <?php
 // Umgebungssuche - Beispiele 7a, 7b
 ?>
+<?php
+use KLXM\VectorMaps\BackendHero;
+
+echo BackendHero::renderCompact(
+    'nearby',
+    'Vector Maps · Nearby Search',
+    'POI-Suche mit Overpass',
+    'Hier testest du ausschließlich die Umgebungssuche mit Radius, Tags und optionalem Nutzerstandort.',
+    ['Overpass', 'Radius', 'OSM-Tags', 'Standort']
+);
+?>
 <div class="panel panel-default">
     <div class="panel-heading">
         <h3 class="panel-title">

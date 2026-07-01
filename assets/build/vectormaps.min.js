@@ -6,8 +6,13 @@ class VectorMapPicker {
         this.marker = null;
         this.currentInput = null;
         this.is3dPickerActive = false;
+        this.currentPickerStyle = 'liberty';
+        this.currentPickerTheme = '';
+        this.lastVectorPickerTheme = '';
+        this.inputObserver = null;
         
         this.initAll();
+        this.observeDynamicInputs();
         
         // Init dynamically if REDAXO reloads DOM via PJAX or jQuery pjax (forcal, yform, etc.)
         document.addEventListener('pjax:success', () => this.initAll());
@@ -24,7 +29,7 @@ class VectorMapPicker {
             currentLang = currentLang.substring(0, 2);
         }
 
-        const library = window.VectorMapsI18n || {};
+        const library = window.VectorMapsI18n || window.vector_maps_i18n || {};
         const dict = library[currentLang] || library[defaultLang] || {
             picker_button: 'Map Picker öffnen',
             search_placeholder: 'Adresse suchen...',
@@ -34,6 +39,10 @@ class VectorMapPicker {
 
         if (window.rex && window.rex.vector_maps_i18n) {
             return Object.assign({}, dict, window.rex.vector_maps_i18n);
+        }
+
+        if (window.vector_maps_i18n && typeof window.vector_maps_i18n === 'object') {
+            return Object.assign({}, dict, window.vector_maps_i18n);
         }
         
         return dict;
@@ -54,7 +63,15 @@ class VectorMapPicker {
                         <button type="button" class="btn btn-xs btn-primary vm-style-btn active" data-style="liberty">Liberty</button>
                         <button type="button" class="btn btn-xs btn-default vm-style-btn" data-style="bright">Bright</button>
                         <button type="button" class="btn btn-xs btn-default vm-style-btn" data-style="positron">Positron</button>
+                        <button type="button" class="btn btn-xs btn-default vm-style-btn" data-style="satellite">Satellit</button>
                     </div>
+                    <label class="vm-theme-select-wrap" for="vm-picker-theme-select">
+                        <span>${this.i18n.theme || 'Theme'}</span>
+                        <select id="vm-picker-theme-select" class="form-control input-sm">
+                            <option value="">${this.i18n.no_theme || 'Kein Theme'}</option>
+                        </select>
+                    </label>
+                    <span class="vm-theme-select-note" id="vm-picker-theme-note"></span>
                     <button type="button" class="vm-close-btn">&times;</button>
                 </div>
                 <div class="vm-modal-body">
@@ -119,6 +136,17 @@ class VectorMapPicker {
         // 3D-Toggle im Picker
         document.getElementById('vm-picker-3d-btn').addEventListener('click', () => this.toggle3DPicker());
 
+        const themeSelect = document.getElementById('vm-picker-theme-select');
+        if (themeSelect) {
+            themeSelect.addEventListener('change', () => {
+                this.currentPickerTheme = themeSelect.value || '';
+                if (this.currentPickerTheme !== '') {
+                    this.lastVectorPickerTheme = this.currentPickerTheme;
+                }
+                this.applyCurrentPickerTheme();
+            });
+        }
+
         // Style switcher in picker
         overlay.querySelectorAll('.vm-style-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -126,8 +154,11 @@ class VectorMapPicker {
                     b.className = 'btn btn-xs btn-default vm-style-btn';
                 });
                 btn.className = 'btn btn-xs btn-primary vm-style-btn active';
+                this.currentPickerStyle = btn.dataset.style || 'liberty';
+                this.updateThemeSelectState();
                 if (this.map) {
-                    this.map.setStyle(this.proxyStyleUrl(btn.dataset.style));
+                    this.map.setStyle(this.proxyStyleUrl(this.currentPickerStyle));
+                    this.map.once('idle', () => this.applyCurrentPickerTheme());
                 }
             });
         });
@@ -164,6 +195,40 @@ class VectorMapPicker {
         initCustomUiInfoDemo();
     }
 
+    observeDynamicInputs() {
+        if (this.inputObserver || !document.body || typeof MutationObserver === 'undefined') {
+            return;
+        }
+
+        this.inputObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (!(node instanceof HTMLElement)) {
+                        continue;
+                    }
+
+                    if (node.matches && node.matches('input[data-vector-picker="1"]:not(.vm-initialized), vectormap:not(.vm-initialized), vector-map:not(.vm-initialized)')) {
+                        this.initAll();
+                        return;
+                    }
+
+                    if (
+                        node.querySelector
+                        && node.querySelector('input[data-vector-picker="1"]:not(.vm-initialized), vectormap:not(.vm-initialized), vector-map:not(.vm-initialized)')
+                    ) {
+                        this.initAll();
+                        return;
+                    }
+                }
+            }
+        });
+
+        this.inputObserver.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+    }
+
     setupInput(input) {
         const wrapper = document.createElement('div');
         wrapper.className = 'input-group';
@@ -186,8 +251,108 @@ class VectorMapPicker {
         this.initModal();
         this.currentInput = input;
         this.modal.classList.add('vm-active');
+
+        this.applyInputPickerOptions(input);
         
         setTimeout(() => this.initPickerMap(input), 150);
+    }
+
+    applyInputPickerOptions(input) {
+        if (!this.modal || !input) return;
+
+        const styleButtons = this.modal.querySelectorAll('.vm-style-btn');
+        const styleName = String(input.getAttribute('data-vector-picker-style') || 'liberty').toLowerCase();
+        this.currentPickerStyle = styleName;
+        styleButtons.forEach((btn) => {
+            const isActive = btn.dataset.style === styleName;
+            btn.className = isActive ? 'btn btn-xs btn-primary vm-style-btn active' : 'btn btn-xs btn-default vm-style-btn';
+        });
+
+        this.populateThemeChoices(input);
+        this.currentPickerTheme = String(input.getAttribute('data-vector-picker-theme') || '');
+        this.lastVectorPickerTheme = this.currentPickerTheme;
+        const themeSelect = document.getElementById('vm-picker-theme-select');
+        if (themeSelect) {
+            themeSelect.value = this.currentPickerTheme;
+        }
+        this.updateThemeSelectState();
+
+        if (this.map) {
+            this.map.setStyle(this.proxyStyleUrl(styleName));
+            this.map.once('idle', () => this.applyCurrentPickerTheme());
+        }
+    }
+
+    populateThemeChoices(input) {
+        const themeSelect = document.getElementById('vm-picker-theme-select');
+        if (!themeSelect || !input) return;
+
+        let choices = {};
+        try {
+            choices = JSON.parse(input.getAttribute('data-vector-picker-themes') || '{}') || {};
+        } catch (_) {
+            choices = {};
+        }
+
+        themeSelect.innerHTML = '';
+        const noneOption = document.createElement('option');
+        noneOption.value = '';
+        noneOption.textContent = this.i18n.no_theme || 'Kein Theme';
+        themeSelect.appendChild(noneOption);
+
+        Object.entries(choices).forEach(([value, label]) => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = String(label);
+            themeSelect.appendChild(option);
+        });
+    }
+
+    applyCurrentPickerTheme() {
+        if (!this.map) return;
+        if (!this.currentPickerTheme || this.currentPickerStyle === 'satellite') {
+            return;
+        }
+
+        if (this.map.isStyleLoaded()) {
+            vmLoadAndApplyTheme(this.map, this.currentPickerTheme);
+            return;
+        }
+
+        this.map.once('idle', () => {
+            vmLoadAndApplyTheme(this.map, this.currentPickerTheme);
+        });
+    }
+
+    updateThemeSelectState() {
+        const themeSelect = document.getElementById('vm-picker-theme-select');
+        const themeNote = document.getElementById('vm-picker-theme-note');
+        if (!themeSelect) return;
+
+        const isSatellite = this.currentPickerStyle === 'satellite';
+        themeSelect.disabled = isSatellite;
+        themeSelect.classList.toggle('vm-theme-select--disabled', isSatellite);
+
+        if (isSatellite) {
+            if (this.currentPickerTheme !== '') {
+                this.lastVectorPickerTheme = this.currentPickerTheme;
+            }
+            this.currentPickerTheme = '';
+            themeSelect.value = '';
+            if (themeNote) {
+                themeNote.textContent = this.i18n.theme_vector_only || 'Themes wirken nur auf Vektorstile';
+            }
+            return;
+        }
+
+        if (this.currentPickerTheme === '' && this.lastVectorPickerTheme !== '') {
+            this.currentPickerTheme = this.lastVectorPickerTheme;
+            themeSelect.value = this.currentPickerTheme;
+        }
+
+        if (themeNote) {
+            themeNote.textContent = '';
+        }
     }
     
     closeModal() {
@@ -248,7 +413,7 @@ class VectorMapPicker {
         if (!this.map) {
             this.map = new maplibregl.Map({
                 container: 'vm-picker-map',
-                style: this.proxyStyleUrl('liberty'),
+                style: this.proxyStyleUrl(this.currentPickerStyle || 'liberty'),
                 center: [startLng, startLat],
                 zoom: startZoom,
                 transformRequest: this.createTransformRequest()
@@ -270,6 +435,7 @@ class VectorMapPicker {
                 // Picker-Karte auf Seitensprache setzen
                 const uiLang = (document.documentElement.lang || navigator.language || 'de').slice(0, 2);
                 vmSetLanguage(this.map, uiLang);
+                this.applyCurrentPickerTheme();
             });
 
             // 3D-Gebäude nach Style-Wechsel wiederherstellen
@@ -284,6 +450,7 @@ class VectorMapPicker {
             this.map.setCenter([startLng, startLat]);
             this.map.setZoom(startZoom);
             this.marker.setLngLat([startLng, startLat]);
+            this.applyCurrentPickerTheme();
         }
     }
 

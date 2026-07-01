@@ -1,6 +1,17 @@
 <?php
 // Erweiterte Features
 ?>
+<?php
+use KLXM\VectorMaps\BackendHero;
+
+echo BackendHero::renderCompact(
+    'advanced',
+    'Vector Maps · Erweiterte Features',
+    'Custom UI, Infofenster und GeoJSON',
+    'Hier findest du die erweiterten UI- und Datenbeispiele: Bedienelemente, Info-Layer, Custom Marker und GeoJSON.',
+    ['Controls', 'Infofenster', 'Marker', 'GeoJSON']
+);
+?>
 
 <!-- BEISPIEL 7: Custom UI (Buttons, Infofenster, Route-Panel) -->
 <div class="panel panel-primary">

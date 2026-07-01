@@ -5,6 +5,7 @@ namespace KLXM\VectorMaps;
 use rex;
 use rex_addon;
 use rex_be_controller;
+use rex_extension;
 use rex_path;
 use rex_view;
 use rex_request;
@@ -30,6 +31,33 @@ if (rex_request('rex_api_vm_theme_action', 'string', '') !== '') {
     ThemeManager::handleApiRequest();
 }
 
+if (rex_addon::get('builder')->isAvailable()) {
+    require_once __DIR__ . '/lib/Fields/VectorMapPickerField.php';
+
+    if (class_exists(\FriendsOfREDAXO\Builder\Fields\FieldRegistry::class)) {
+        $fieldClass = 'KLXM\\VectorMaps\\Fields\\VectorMapPickerField';
+        if (class_exists($fieldClass)) {
+            /** @var \FriendsOfREDAXO\Builder\Fields\FieldInterface $field */
+            $field = new $fieldClass();
+            \FriendsOfREDAXO\Builder\Fields\FieldRegistry::register($field);
+        }
+    }
+
+    rex_extension::register(
+        'BUILDER_ELEMENT_PATHS',
+        static function (\rex_extension_point $ep): array {
+            $paths = (array) $ep->getSubject();
+            $paths['vector_maps'] = rex_path::addon('vector_maps', 'elements');
+            return $paths;
+        },
+        rex_extension::EARLY
+    );
+}
+
+if (rex_addon::get('yform')->isAvailable()) {
+    \rex_yform::addTemplatePath(__DIR__ . '/ytemplates');
+}
+
 if (rex::isBackend() && rex::getUser()) {
     // JS Translations für den Picker bereitstellen
     // Backend-UI-Sprache (z. B. 'de', 'en') für Demo-Karte und Picker
@@ -41,6 +69,9 @@ if (rex::isBackend() && rex::getUser()) {
         'search_placeholder' => \rex_i18n::msg('vector_maps_search_placeholder'),
         'close' => \rex_i18n::msg('vector_maps_close'),
         'confirm' => \rex_i18n::msg('vector_maps_confirm'),
+        'theme' => \rex_i18n::msg('vector_maps_picker_theme'),
+        'no_theme' => \rex_i18n::msg('vector_maps_picker_no_theme'),
+        'theme_vector_only' => \rex_i18n::msg('vector_maps_picker_theme_vector_only'),
     ]);
 
     // Assets im Backend laden (für Picker etc.)
@@ -50,6 +81,7 @@ if (rex::isBackend() && rex::getUser()) {
         $path = rex_path::addonAssets('vector_maps', $rel);
         return $addon->getAssetsUrl($rel) . '?v=' . (file_exists($path) ? filemtime($path) : 0);
     };
+    rex_view::addCssFile($vmVer('build/vector_maps_backend.css'));
     rex_view::addCssFile($vmVer('build/vectormaps.css'));
     // Zuerst MapLibre Core laden
     rex_view::addCssFile($vmVer('maplibre/maplibre-gl.css'));
@@ -63,10 +95,6 @@ if (rex::isBackend() && rex::getUser()) {
         rex_view::addJsFile($vmVer('build/theme-editor.js'));
     }
     
-    // YForm Plugin registrieren
-    if (rex_addon::get('yform')->isAvailable()) {
-        \rex_yform::addTemplatePath(__DIR__ . '/ytemplates');
-    }
 }
 
 // Frontend: Assets für <vector-map> / <vectormap> Custom Element laden
@@ -87,7 +115,10 @@ if (!rex::isBackend()) {
         \rex_extension::register('OUTPUT_FILTER', static function(\rex_extension_point $ep) use ($vmFe): void {
             $subject = $ep->getSubject();
             // Assets nur einbinden wenn eine Karte auf der Seite vorhanden ist
-            if (!str_contains($subject, '<vector-map') && !str_contains($subject, '<vectormap')) {
+            if (!str_contains($subject, '<vector-map')
+                && !str_contains($subject, '<vectormap')
+                && !str_contains($subject, 'data-vector-picker="1"')
+                && !str_contains($subject, "data-vector-picker='1'")) {
                 return;
             }
             $css = '<link rel="stylesheet" href="' . $vmFe('maplibre/maplibre-gl.css') . "\">

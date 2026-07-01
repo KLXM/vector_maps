@@ -1,19 +1,35 @@
 <?php
 
+use KLXM\VectorMaps\BackendHero;
 use KLXM\VectorMaps\ThemeManager;
 
 // Custom-Themes laden
 $customThemes = ThemeManager::getCustomThemes();
+$customThemeCount = count($customThemes);
+$builtInThemeCount = 5;
 
 // Theme-Liste und Built-in-Themes für JS bereitstellen
 rex_view::setJsProperty('vector_maps_themes', $customThemes);
 
+echo BackendHero::render(
+    'themes',
+    'Vector Maps · Theme Studio',
+    'Eigene Kartenstile erstellen und verwalten',
+    'In diesem Bereich baust, speicherst, importierst und exportierst du Karten-Themes inklusive Live-Vorschau.',
+    ['Live Preview', 'Import / Export', 'Farbsystem'],
+    [
+        ['value' => (string) $customThemeCount, 'label' => 'Eigene Themes'],
+        ['value' => (string) $builtInThemeCount, 'label' => 'Built-ins'],
+        ['value' => '3', 'label' => 'Basisstile'],
+    ]
+);
+
 ?>
 <div class="panel panel-default">
-    <div class="panel-heading">
+    <div class="panel-heading vm-panel-heading--soft">
         <h3 class="panel-title">
-            <i class="rex-icon rex-icon-vector-maps"></i>
-            Theme-Editor &mdash; eigene Farbpaletten erstellen
+            <i class="vector-maps-icon-logo"></i>
+            Theme-Editor Werkbank
         </h3>
     </div>
     <div class="panel-body">
@@ -139,7 +155,7 @@ rex_view::setJsProperty('vector_maps_themes', $customThemes);
 
 <!-- ── Gespeicherte Themes ── -->
 <div class="panel panel-default">
-    <div class="panel-heading" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div class="panel-heading vm-panel-heading--soft" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <h3 class="panel-title">
             <i class="rex-icon rex-icon-layers"></i>
             Verfügbare Themes

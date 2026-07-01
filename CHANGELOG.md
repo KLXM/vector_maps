@@ -5,6 +5,28 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.2.0] – 2026-07-01
+
+### Hinzugefügt
+
+- **Framework-unabhängiger Geodaten-Picker** – normale Input-Felder können jetzt über `data-vector-picker="1"` oder `PickerWidget::factory(...)` mit Karten-Modal, Adresssuche, Stil- und Theme-Vorgabe erweitert werden
+- **YForm-Value `vector_map_location`** – neues YForm-Feld speichert Koordinaten als `lat,lng` und rendert den Picker direkt im Formular
+- **Builder-Integration für Geodaten** – neuer Builder-Feldtyp `vector_map_picker` und neues Element `Vector Map` mit Templates für `plain`, `bootstrap` und `uikit`
+- **Optionaler Routenplaner im Builder-Element** – das Element unterstützt jetzt auch `route-panel`, Start/Ziel, Routing-Modus, Ziel-Fixierung, Ziel-Popup sowie Panel-Layout, -Position, -Stil und -Breite
+- **Dedizierte Geocoding-Demo** – neue Demo-Seite für Picker-, YForm- und Builder-Integration inklusive Theme-/Satelliten-Verhalten
+
+### Gefixt
+
+- **Builder-Preview für nachgeladene Karten** – dynamisch eingefügte `<vectormap>`-Elemente werden jetzt zuverlässig per MutationObserver initialisiert und bleiben im Builder nicht mehr leer
+- **PHP-Warnings in Picker-/Builder-Templates** – wirkungslose `use`-Statements mit nicht zusammengesetzten REDAXO-Funktionsnamen wurden entfernt
+- **Picker-Verhalten bei Satellitenstil** – Theme-Auswahl wird im Modal für `satellite` korrekt deaktiviert und beim Rückwechsel auf Vektorstile sauber wiederhergestellt
+
+### Geändert
+
+- **README und Demos erweitert** – Dokumentation ergänzt um allgemeinen Picker, YForm-Feld, Builder-Element, Routing im Builder und Hinweise zur Geocoding-Demo
+
+---
+
 ## [1.1.5] – 2026-07-01
 
 ### Hinzugefügt

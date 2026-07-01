@@ -1,6 +1,17 @@
 <?php
 // Design-Skins & UI-Styling Demos
 ?>
+<?php
+use KLXM\VectorMaps\BackendHero;
+
+echo BackendHero::renderCompact(
+    'skins',
+    'Vector Maps · Design-Skins',
+    'Preset-Looks für Karten und Route-Panel',
+    'Dieser Bereich zeigt nur Styling-Presets für Widgets, Infofenster, Navigation und Routing-Oberflächen.',
+    ['Presets', 'Widgets', 'Infofenster', 'Route-Panel']
+);
+?>
 
 <div class="panel panel-primary">
     <div class="panel-heading">

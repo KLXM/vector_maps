@@ -19,6 +19,9 @@ class UI
             'search_placeholder' => rex_i18n::msg('vector_maps_search_placeholder'),
             'close' => rex_i18n::msg('vector_maps_close'),
             'confirm' => rex_i18n::msg('vector_maps_confirm'),
+            'theme' => rex_i18n::msg('vector_maps_picker_theme'),
+            'no_theme' => rex_i18n::msg('vector_maps_picker_no_theme'),
+            'theme_vector_only' => rex_i18n::msg('vector_maps_picker_theme_vector_only'),
         ];
 
         return '<script>window.vector_maps_i18n = ' . json_encode($i18n, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE) . ';</script>';
