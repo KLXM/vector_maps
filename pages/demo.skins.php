@@ -93,6 +93,17 @@
 
             --vm-rp-accent: #67e8f9;
             --vm-rp-radius: 14px;
+
+            --vm-nav-size: 34px;
+            --vm-nav-bg: rgba(14, 23, 35, .72);
+            --vm-nav-color: #dbeafe;
+            --vm-nav-border: 1px solid rgba(148, 163, 184, .35);
+            --vm-nav-shadow: 0 10px 22px rgba(0, 0, 0, .34);
+            --vm-nav-hover-bg: rgba(30, 64, 175, .75);
+            --vm-nav-hover-color: #dbeafe;
+            --vm-nav-active-bg: #38bdf8;
+            --vm-nav-active-color: #0c1b2d;
+            --vm-nav-icon-filter: invert(1) brightness(1.1);
         }
 
         vectormap.vm-skin-route-modern {
@@ -112,6 +123,91 @@
             --vm-rp-accent: #2f6fed;
             --vm-rp-accent-contrast: #ffffff;
             --vm-rp-radius: 14px;
+        }
+
+        vectormap.vm-skin-signature-editorial {
+            --vm-nav-size: 34px;
+            --vm-nav-radius: 14px;
+            --vm-nav-bg: #f7f3ea;
+            --vm-nav-color: #2f2a24;
+            --vm-nav-border: 1px solid rgba(87, 76, 61, .22);
+            --vm-nav-shadow: 0 10px 26px rgba(67, 56, 42, .22);
+            --vm-nav-hover-bg: #efe7d8;
+            --vm-nav-hover-color: #111827;
+            --vm-nav-active-bg: #c67b4e;
+            --vm-nav-active-color: #fffaf4;
+
+            --vm-tool-size: 34px;
+            --vm-tool-radius: 14px;
+            --vm-tool-bg: #f7f3ea;
+            --vm-tool-color: #2f2a24;
+            --vm-tool-border: 1px solid rgba(87, 76, 61, .22);
+            --vm-tool-shadow: 0 10px 26px rgba(67, 56, 42, .22);
+            --vm-tool-hover-bg: #efe7d8;
+            --vm-tool-hover-color: #111827;
+            --vm-tool-active-bg: #c67b4e;
+            --vm-tool-active-color: #fffaf4;
+
+            --vm-info-bg: rgba(247, 243, 234, .95);
+            --vm-info-color: #2f2a24;
+            --vm-info-radius: 16px;
+            --vm-info-shadow: 0 14px 30px rgba(67, 56, 42, .24);
+
+            --vm-rp-bg: rgba(247, 243, 234, .97);
+            --vm-rp-color: #2f2a24;
+            --vm-rp-muted: #6b5f50;
+            --vm-rp-accent: #c67b4e;
+            --vm-rp-accent-contrast: #fffaf4;
+            --vm-rp-input-bg: #fffcf6;
+            --vm-rp-input-border: #d5c5ae;
+            --vm-rp-chip-bg: #fff7ea;
+            --vm-rp-chip-border: #d9c7b0;
+            --vm-rp-chip-color: #3c342c;
+            --vm-rp-chip-hover-bg: #f2e4ce;
+            --vm-rp-radius: 16px;
+        }
+
+        vectormap.vm-skin-signature-transit {
+            --vm-nav-size: 35px;
+            --vm-nav-radius: 8px;
+            --vm-nav-bg: rgba(20, 26, 38, .9);
+            --vm-nav-color: #d9e7ff;
+            --vm-nav-border: 1px solid rgba(99, 120, 160, .38);
+            --vm-nav-shadow: 0 12px 28px rgba(3, 8, 17, .45);
+            --vm-nav-hover-bg: rgba(37, 54, 92, .92);
+            --vm-nav-hover-color: #f0f6ff;
+            --vm-nav-active-bg: #00c2a8;
+            --vm-nav-active-color: #06211d;
+            --vm-nav-icon-filter: invert(1) brightness(1.15);
+
+            --vm-tool-size: 35px;
+            --vm-tool-radius: 8px;
+            --vm-tool-bg: rgba(20, 26, 38, .9);
+            --vm-tool-color: #d9e7ff;
+            --vm-tool-border: 1px solid rgba(99, 120, 160, .38);
+            --vm-tool-shadow: 0 12px 28px rgba(3, 8, 17, .45);
+            --vm-tool-hover-bg: rgba(37, 54, 92, .92);
+            --vm-tool-hover-color: #f0f6ff;
+            --vm-tool-active-bg: #00c2a8;
+            --vm-tool-active-color: #06211d;
+
+            --vm-info-bg: rgba(20, 26, 38, .9);
+            --vm-info-color: #d9e7ff;
+            --vm-info-radius: 12px;
+            --vm-info-shadow: 0 16px 32px rgba(3, 8, 17, .5);
+
+            --vm-rp-bg: rgba(20, 26, 38, .94);
+            --vm-rp-color: #d9e7ff;
+            --vm-rp-muted: #9db3db;
+            --vm-rp-accent: #00c2a8;
+            --vm-rp-accent-contrast: #06211d;
+            --vm-rp-input-bg: rgba(11, 17, 28, .95);
+            --vm-rp-input-border: #3f567f;
+            --vm-rp-chip-bg: rgba(33, 45, 69, .92);
+            --vm-rp-chip-border: #4e6692;
+            --vm-rp-chip-color: #d9e7ff;
+            --vm-rp-chip-hover-bg: #2d4165;
+            --vm-rp-radius: 12px;
         }
         </style>
 
@@ -215,8 +311,9 @@
                 <pre style="font-size:11px">&lt;vectormap
   class="vm-skin-nightglass"
   locate show-satellite
-  controls-position="top-right"
-  buttons-position="top-right"
+    controls-style="rail"
+    controls-position="top-left"
+    buttons-position="top-left"
   route-panel route-panel-style="glass"
   route-panel-position="bottom-left"
   info-position="top-left"&gt;
@@ -228,8 +325,9 @@
                     height="400"
                     locate
                     show-satellite
-                    controls-position="top-right"
-                    buttons-position="top-right"
+                    controls-style="rail"
+                    controls-position="top-left"
+                    buttons-position="top-left"
                     route-panel
                     route-panel-style="glass"
                     route-panel-position="bottom-left"
@@ -253,6 +351,8 @@
   height="430"
   locate
   show-satellite
+    controls-position="top-left"
+    buttons-position="top-left"
   route-panel
   route-panel-style="brand"
   route-panel-position="bottom-left"
@@ -268,6 +368,8 @@
                     height="430"
                     locate
                     show-satellite
+                    controls-position="top-left"
+                    buttons-position="top-left"
                     route-panel
                     route-panel-style="brand"
                     route-panel-position="bottom-left"
@@ -275,6 +377,122 @@
                     route-to="Leipzig Hauptbahnhof"
                     info-position="top-right"
                     info-html="<strong>Modern Routing</strong><br>Neue Stilvariante"
+                    info-closable>
+                </vectormap>
+            </div>
+        </div>
+
+        <div class="row" style="margin-bottom:20px">
+            <div class="col-md-12">
+                <h4 style="margin-top:0">6. Control-Styles (eigene UI-Sprache statt Standard-Map)</h4>
+                <p class="text-muted" style="font-size:13px;margin-bottom:8px">Hier sind Navigation + Locate/Satellit bewusst links oben in einer Ecke gebündelt, damit die Controls ruhiger und als ein gemeinsamer Block wirken.</p>
+            </div>
+            <div class="col-md-4">
+                <p class="text-muted" style="font-size:12px;margin-bottom:6px"><code>controls-style="soft"</code></p>
+                <vectormap
+                    center="51.3397,12.3731"
+                    zoom="12"
+                    height="320"
+                    locate
+                    show-satellite
+                    fullscreen
+                    controls-style="soft"
+                    controls-position="top-left"
+                    buttons-position="top-left">
+                </vectormap>
+            </div>
+            <div class="col-md-4">
+                <p class="text-muted" style="font-size:12px;margin-bottom:6px"><code>controls-style="minimal"</code></p>
+                <vectormap
+                    center="50.9375,6.9603"
+                    zoom="12"
+                    height="320"
+                    locate
+                    show-satellite
+                    fullscreen
+                    controls-style="minimal"
+                    controls-position="top-left"
+                    buttons-position="top-left">
+                </vectormap>
+            </div>
+            <div class="col-md-4">
+                <p class="text-muted" style="font-size:12px;margin-bottom:6px"><code>controls-style="bold"</code></p>
+                <vectormap
+                    center="47.3769,8.5417"
+                    zoom="12"
+                    height="320"
+                    locate
+                    show-satellite
+                    fullscreen
+                    controls-style="bold"
+                    controls-position="top-left"
+                    buttons-position="top-left">
+                </vectormap>
+            </div>
+        </div>
+
+        <div class="row" style="margin-bottom:20px">
+            <div class="col-md-12">
+                <h4 style="margin-top:0">7. Signature Styles (bewusst nicht Google-Maps-Look)</h4>
+                <p class="text-muted" style="font-size:13px;margin-bottom:8px">Zwei gestaltete Richtungen mit eigener Typik und klarer Design-Sprache. Beide Presets stylen Controls, Info-Fenster und Routing konsistent.</p>
+            </div>
+            <div class="col-md-6">
+                <p class="text-muted" style="font-size:12px;margin-bottom:6px"><code>vm-skin-signature-editorial</code> · warm/editorial</p>
+                <pre style="font-size:11px">&lt;vectormap
+  class="vm-skin-signature-editorial"
+  locate show-satellite fullscreen
+  controls-position="top-left"
+  buttons-position="top-left"
+  route-panel route-panel-style="brand"
+  route-panel-position="bottom-left"&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    class="vm-skin-signature-editorial"
+                    center="48.2082,16.3738"
+                    zoom="12"
+                    height="390"
+                    locate
+                    show-satellite
+                    fullscreen
+                    controls-position="top-left"
+                    buttons-position="top-left"
+                    route-panel
+                    route-panel-style="brand"
+                    route-panel-position="bottom-left"
+                    route-from="Wien Hauptbahnhof"
+                    route-to="Stephansplatz Wien"
+                    info-position="top-right"
+                    info-html="<strong>Editorial City</strong><br>Warmes, magazinartiges UI"
+                    info-closable>
+                </vectormap>
+            </div>
+            <div class="col-md-6">
+                <p class="text-muted" style="font-size:12px;margin-bottom:6px"><code>vm-skin-signature-transit</code> · techno/transit</p>
+                <pre style="font-size:11px">&lt;vectormap
+  class="vm-skin-signature-transit"
+  locate show-satellite fullscreen
+  controls-position="top-right"
+  buttons-position="top-right"
+  route-panel route-panel-style="glass"
+  route-panel-position="bottom-left"&gt;
+&lt;/vectormap&gt;</pre>
+                <vectormap
+                    class="vm-skin-signature-transit"
+                    center="45.4642,9.19"
+                    zoom="12"
+                    height="390"
+                    locate
+                    show-satellite
+                    fullscreen
+                    controls-position="top-right"
+                    buttons-position="top-right"
+                    route-panel
+                    route-panel-style="glass"
+                    route-panel-position="bottom-left"
+                    route-from="Milano Centrale"
+                    route-to="Duomo di Milano"
+                    info-position="top-left"
+                    info-html="<strong>Transit Grid</strong><br>Kühles, technisches Panel-UI"
                     info-closable>
                 </vectormap>
             </div>
@@ -288,7 +506,7 @@
 
         <hr>
 
-        <h4 style="margin-top:0">6. Zwei funktionierende Infofenster-Varianten (Code-Auszug)</h4>
+        <h4 style="margin-top:0">8. Zwei funktionierende Infofenster-Varianten (Code-Auszug)</h4>
         <div class="row" style="margin-bottom:14px">
             <div class="col-md-6">
                 <h5 style="margin-top:0">A) Attribut-Variante (<code>info-html</code>)</h5>
@@ -311,7 +529,7 @@
             </div>
         </div>
 
-        <h4 style="margin-top:0">7. Inline-Variante: Infofenster als Child-Element <code>.mapinfo</code></h4>
+        <h4 style="margin-top:0">9. Inline-Variante: Infofenster als Child-Element <code>.mapinfo</code></h4>
         <p class="text-muted" style="font-size:13px;margin-bottom:8px">
             Diese Variante funktioniert ohne <code>info-html</code>-Attribut direkt im Markup der Karte.
             Optional: <code>data-position</code>, <code>data-class</code>, <code>data-closable</code>.

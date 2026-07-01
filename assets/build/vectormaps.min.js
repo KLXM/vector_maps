@@ -1096,32 +1096,55 @@ function vmNormalizeControlPosition(raw, fallback = 'top-right') {
     return VM_CONTROL_POSITIONS.includes(pos) ? pos : fallback;
 }
 
-function vmSetCornerVars(el, prefix, position, offsetPx = 10, stackOffset = 0) {
+function vmResolveClusterPosition(clusterRaw, fallback = 'top-right') {
+    const cluster = String(clusterRaw || '').toLowerCase();
+    if (cluster === 'left') return 'top-left';
+    if (cluster === 'right') return 'top-right';
+    if (VM_CONTROL_POSITIONS.includes(cluster)) return cluster;
+    return fallback;
+}
+
+function vmResolveControlsPosition(el, fallback = 'top-right') {
+    if (el.hasAttribute('controls-position')) {
+        return vmNormalizeControlPosition(el.getAttribute('controls-position'), fallback);
+    }
+    return vmResolveClusterPosition(el.getAttribute('controls-cluster'), fallback);
+}
+
+function vmResolveButtonsBasePosition(el, fallback = 'top-right') {
+    if (el.hasAttribute('buttons-position')) {
+        return vmNormalizeControlPosition(el.getAttribute('buttons-position'), vmResolveControlsPosition(el, fallback));
+    }
+    return vmResolveControlsPosition(el, fallback);
+}
+
+function vmSetCornerVars(el, prefix, position, offsetPx = 10, stackOffset = 0, crossOffsetPx = null) {
     const pos = vmNormalizeControlPosition(position, null);
     if (!pos) return;
 
     const px = (n) => `${Math.max(0, Math.round(n))}px`;
     const base = Number(offsetPx) || 10;
     const stack = Number(stackOffset) || 0;
+    const cross = null === crossOffsetPx ? base : (Number(crossOffsetPx) || 10);
 
     if (pos === 'top-left') {
         el.style.setProperty(`--${prefix}-top`, px(base + stack));
-        el.style.setProperty(`--${prefix}-left`, px(base));
+        el.style.setProperty(`--${prefix}-left`, px(cross));
         el.style.setProperty(`--${prefix}-right`, 'auto');
         el.style.setProperty(`--${prefix}-bottom`, 'auto');
     } else if (pos === 'top-right') {
         el.style.setProperty(`--${prefix}-top`, px(base + stack));
-        el.style.setProperty(`--${prefix}-right`, px(base));
+        el.style.setProperty(`--${prefix}-right`, px(cross));
         el.style.setProperty(`--${prefix}-left`, 'auto');
         el.style.setProperty(`--${prefix}-bottom`, 'auto');
     } else if (pos === 'bottom-left') {
         el.style.setProperty(`--${prefix}-bottom`, px(base + stack));
-        el.style.setProperty(`--${prefix}-left`, px(base));
+        el.style.setProperty(`--${prefix}-left`, px(cross));
         el.style.setProperty(`--${prefix}-right`, 'auto');
         el.style.setProperty(`--${prefix}-top`, 'auto');
     } else {
         el.style.setProperty(`--${prefix}-bottom`, px(base + stack));
-        el.style.setProperty(`--${prefix}-right`, px(base));
+        el.style.setProperty(`--${prefix}-right`, px(cross));
         el.style.setProperty(`--${prefix}-left`, 'auto');
         el.style.setProperty(`--${prefix}-top`, 'auto');
     }
@@ -1129,18 +1152,19 @@ function vmSetCornerVars(el, prefix, position, offsetPx = 10, stackOffset = 0) {
 
 function vmApplyOverlayPositions(el) {
     const reserve = vmCollectControlReserve(el);
-    const basePos = vmNormalizeControlPosition(el.getAttribute('buttons-position'), 'bottom-right');
+    const edgeOffset = parseFloat(el.getAttribute('buttons-offset') || '10');
+    const basePos = vmResolveButtonsBasePosition(el, 'top-right');
     const locatePos = vmNormalizeControlPosition(el.getAttribute('locate-position'), basePos);
     const satPos = vmNormalizeControlPosition(el.getAttribute('satellite-position'), basePos);
     const gap = parseFloat(el.getAttribute('buttons-gap') || '38');
 
-    const locateBase = parseFloat(el.getAttribute('buttons-offset') || '10') + (reserve[locatePos] || 0);
-    vmSetCornerVars(el, 'vm-locate', locatePos, locateBase, 0);
+    const locateBase = edgeOffset + (reserve[locatePos] || 0);
+    vmSetCornerVars(el, 'vm-locate', locatePos, locateBase, 0, edgeOffset);
 
     // Nur bei gleicher Ecke stacken, sonst unabhängig platzieren
     const satStack = satPos === locatePos ? gap : 0;
-    const satBase = parseFloat(el.getAttribute('buttons-offset') || '10') + (reserve[satPos] || 0);
-    vmSetCornerVars(el, 'vm-satellite', satPos, satBase, satStack);
+    const satBase = edgeOffset + (reserve[satPos] || 0);
+    vmSetCornerVars(el, 'vm-satellite', satPos, satBase, satStack, edgeOffset);
 }
 
 function vmCollectControlReserve(el) {
@@ -1151,13 +1175,26 @@ function vmCollectControlReserve(el) {
         'bottom-right': 0,
     };
 
+    // Wenn die Karte bereits gerendert ist, echte Eckhöhen messen statt fixer Schätzwerte.
+    const mapPane = el._vmMapContainer || null;
+    const controlContainer = mapPane ? mapPane.querySelector('.maplibregl-control-container') : null;
+    if (controlContainer) {
+        VM_CONTROL_POSITIONS.forEach((pos) => {
+            const corner = controlContainer.querySelector('.maplibregl-ctrl-' + pos);
+            if (corner) {
+                reserve[pos] = Math.max(0, Math.ceil(corner.offsetHeight || 0));
+            }
+        });
+        return reserve;
+    }
+
     if (!el.hasAttribute('no-navigation')) {
-        const navPos = vmNormalizeControlPosition(el.getAttribute('controls-position'), 'top-right');
+        const navPos = vmResolveControlsPosition(el, 'top-right');
         reserve[navPos] += 74;
     }
 
     if (el.hasAttribute('fullscreen')) {
-        const fsFallback = vmNormalizeControlPosition(el.getAttribute('controls-position'), 'top-right');
+        const fsFallback = vmResolveControlsPosition(el, 'top-right');
         const fsPos = vmNormalizeControlPosition(el.getAttribute('fullscreen-position'), fsFallback);
         reserve[fsPos] += 42;
     }
@@ -1215,6 +1252,24 @@ function vmApplyRoutePanelPosition(el) {
     panel.classList.remove('vm-route-panel--glass', 'vm-route-panel--contrast', 'vm-route-panel--brand');
     if (preset === 'glass' || preset === 'contrast' || preset === 'brand') {
         panel.classList.add('vm-route-panel--' + preset);
+    }
+}
+
+function vmApplyControlsStylePreset(el) {
+    const presetClasses = [
+        'vm-controls-style-soft',
+        'vm-controls-style-rail',
+        'vm-controls-style-minimal',
+        'vm-controls-style-bold',
+    ];
+    el.classList.remove(...presetClasses);
+
+    const preset = String(el.getAttribute('controls-style') || '').toLowerCase();
+    if (!preset) return;
+
+    const allow = new Set(['soft', 'rail', 'minimal', 'bold']);
+    if (allow.has(preset)) {
+        el.classList.add('vm-controls-style-' + preset);
     }
 }
 
@@ -1325,7 +1380,9 @@ function vmAttachElementApi(el) {
 function vmObserveDynamicAttributes(el) {
     if (el._vmObserver) return;
     const dynamicAttrs = new Set([
+        'controls-position', 'controls-cluster', 'fullscreen-position',
         'buttons-position', 'locate-position', 'satellite-position', 'buttons-offset', 'buttons-gap',
+        'controls-style',
         'route-panel-position', 'route-panel-offset', 'route-panel-style',
         'info-html', 'info-position', 'info-offset', 'info-class', 'info-visible', 'info-closable',
     ]);
@@ -1340,6 +1397,10 @@ function vmObserveDynamicAttributes(el) {
             }
             if (m.attributeName.startsWith('route-panel-')) {
                 vmApplyRoutePanelPosition(el);
+                return;
+            }
+            if (m.attributeName === 'controls-style') {
+                vmApplyControlsStylePreset(el);
                 return;
             }
             vmApplyOverlayPositions(el);
@@ -1407,7 +1468,7 @@ function vmBuildMap(el) {
     const pitch       = parseFloat(el.getAttribute('pitch')     || '0');
     const bearing     = parseFloat(el.getAttribute('bearing')   || '0');
     const mapStyle    = el.getAttribute('map-style') || 'liberty';
-    const controlsPos = vmNormalizeControlPosition(el.getAttribute('controls-position'), 'top-right');
+    const controlsPos = vmResolveControlsPosition(el, 'top-right');
     const interactive = el.getAttribute('interactive') !== 'false';
     const minZoom     = el.hasAttribute('min-zoom') ? parseFloat(el.getAttribute('min-zoom')) : 0;
     const maxZoom     = el.hasAttribute('max-zoom') ? parseFloat(el.getAttribute('max-zoom')) : 22;
@@ -1443,6 +1504,7 @@ function vmBuildMap(el) {
     });
 
     el._vmMap = map;
+    vmApplyControlsStylePreset(el);
     vmAttachElementApi(el);
     vmObserveDynamicAttributes(el);
     map._vmEl = el;  // Rueckwaerts-Referenz fuer Theme-Fade-in

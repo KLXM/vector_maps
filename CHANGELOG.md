@@ -5,6 +5,26 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.1.5] – 2026-07-01
+
+### Hinzugefügt
+
+- **Einfache Control-Default-API** – neues Attribut `controls-cluster` (`left`, `right` oder direkte Ecke), um Navigation, Locate und Satellit mit einem einzigen Schalter gemeinsam zu positionieren
+- **Erweiterte Control-Styling-Optionen** – einheitliche CSS-Variablen für MapLibre-Navigation (+/−/Kompass/Fullscreen) sowie Locate/Satellit; neue Presets über `controls-style` (`soft`, `rail`, `minimal`, `bold`)
+- **Signature-Styles in Doku und Demo** – zwei gestaltete Richtungen (`Editorial Warm`, `Transit Tech`) als copy-paste-fertige Beispiele in Skin-Demo und README
+
+### Gefixt
+
+- **Button-Überlagerungen in Control-Ecken** – Locate/Satellit berechnen den notwendigen Abstand jetzt anhand der realen, gemessenen Höhe der MapLibre-Control-Ecken (statt fixer Schätzwert-Offsets)
+- **Seitlicher Versatz bei linken Control-Ecken** – Reserve-Offset wirkt jetzt nur auf die vertikale Achse; die horizontale Kante bleibt am definierten Randabstand
+
+### Geändert
+
+- **Sinnvolle Standardlogik für Entwickler** – ohne zusätzliche Konfiguration stehen Controls standardmäßig zusammen; manuelle Feinpositionierung über `controls-position`, `buttons-position`, `locate-position`, `satellite-position` bleibt optional möglich
+- **Skin-Demos bereinigt/angeglichen** – Control-Cluster in relevanten Demos konsequent gebündelt und Beschreibungen entsprechend angepasst
+
+---
+
 ## [1.1.4] – 2026-06-30
 
 ### Hinzugefügt

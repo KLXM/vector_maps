@@ -164,10 +164,12 @@ worker-src blob:;
 | `locate` | `false` | `locate` | Standort-Button anzeigen |
 | `fullscreen` | `false` | `fullscreen` | Fullscreen-Button anzeigen (Karte im Browser-Vollbild umschalten) |
 | `controls-position` | `top-right` | `controls-position="top-left"` | Position der MapLibre-Navigation (`top-left`, `top-right`, `bottom-left`, `bottom-right`) |
+| `controls-cluster` | `right` | `controls-cluster="left"` | Einfacher Shortcut für sinnvolle Defaults: clustert Navigation + Locate/Satellit gemeinsam (`left`, `right`, oder direkte Ecke wie `bottom-left`) |
+| `controls-style` | – | `controls-style="rail"` | Vorgefertigte UI-Stile für Navigation/Kompass/Fullscreen plus Locate/Satellit: `soft`, `rail`, `minimal`, `bold` |
 | `fullscreen-position` | wie `controls-position` | `fullscreen-position="bottom-right"` | Position des Fullscreen-Buttons |
 | `no-navigation` | `false` | `no-navigation` | Zoom-/Kompass-Controls ausblenden |
 | `no-attribution` | `false` | `no-attribution` | Attributionszeile ausblenden |
-| `buttons-position` | `bottom-right` | `buttons-position="top-left"` | Basisposition für `locate`/`show-satellite` Buttons |
+| `buttons-position` | wie `controls-position` | `buttons-position="top-left"` | Basisposition für `locate`/`show-satellite` Buttons |
 | `locate-position` | wie `buttons-position` | `locate-position="bottom-left"` | Individuelle Position des Locate-Buttons |
 | `satellite-position` | wie `buttons-position` | `satellite-position="top-left"` | Individuelle Position des Satellit-Buttons |
 | `buttons-offset` | `10` | `buttons-offset="16"` | Außenabstand der Overlay-Buttons in px |
@@ -187,6 +189,275 @@ worker-src blob:;
 | `fly-to` | – | `fly-to="48.85,2.35"` | Kartenansicht nach dem Laden animiert zentrieren |
 | `min-zoom` | `0` | `min-zoom="5"` | Minimaler Zoom-Level |
 | `max-zoom` | `22` | `max-zoom="18"` | Maximaler Zoom-Level |
+
+---
+
+### Buttons Positionieren (Einfach + Manuell)
+
+Reihenfolge der Positionslogik:
+
+1. Wenn gesetzt, gilt `locate-position` bzw. `satellite-position` (pro Button).
+2. Sonst gilt `buttons-position` (gemeinsame Basis für beide Buttons).
+3. Sonst folgt `buttons-position` automatisch der Control-Ecke aus `controls-position`.
+4. Wenn `controls-position` fehlt, greift `controls-cluster` (`right` = oben rechts, `left` = oben links).
+
+Standard ohne zusätzliche Attribute (alles gemeinsam in einer Ecke):
+
+```html
+<vectormap
+    center="51.165691,10.451526"
+    zoom="6"
+    locate
+    show-satellite
+    fullscreen>
+</vectormap>
+```
+
+Einfach komplett nach links clustern:
+
+```html
+<vectormap
+    center="51.165691,10.451526"
+    zoom="6"
+    locate
+    show-satellite
+    fullscreen
+    controls-cluster="left">
+</vectormap>
+```
+
+Manuell trennen (optional):
+
+```html
+<vectormap
+    center="51.165691,10.451526"
+    zoom="6"
+    locate
+    show-satellite
+    controls-position="top-left"
+    buttons-position="top-left"
+    locate-position="bottom-left"
+    satellite-position="top-right">
+</vectormap>
+```
+
+---
+
+### Info-Kästen Erstellen
+
+Variante A: per Attribut `info-html`
+
+```html
+<vectormap
+    center="51.43,6.77"
+    zoom="12"
+    height="380"
+    info-position="top-left"
+    info-html="<strong>Service</strong><br>Mo-Fr 08:00-18:00"
+    info-closable>
+</vectormap>
+```
+
+Variante B: Inline als Child `<div class="mapinfo">`
+
+```html
+<vectormap center="51.43,6.77" zoom="12" height="380">
+    <div class="mapinfo" data-position="top-left" data-closable data-class="my-info-box">
+        <strong>Kontakt</strong><br>
+        Mo-Fr 08:00-18:00<br>
+        <a href="/kontakt">Zur Kontaktseite</a>
+    </div>
+</vectormap>
+```
+
+Unterstützte `mapinfo`-Optionen:
+- `data-position="top-left|top-right|bottom-left|bottom-right"`
+- `data-class="deine-klasse"`
+- `data-closable`
+
+---
+
+### Quick Recipes
+
+Drei kurze Copy-Paste-Vorlagen fuer typische Einsaetze.
+
+#### 1) Corporate Karte (ruhige Controls, klare Info)
+
+```html
+<vectormap
+    center="52.520008,13.404954"
+    zoom="12"
+    height="420"
+    locate
+    show-satellite
+    fullscreen
+    controls-cluster="left"
+    controls-style="soft"
+    info-position="top-right"
+    info-html="<strong>Standort Berlin</strong><br>Mo-Fr 08:00-18:00"
+    info-closable>
+</vectormap>
+```
+
+#### 2) Kontaktseite (festes Ziel, Besucher gibt nur Start ein)
+
+```html
+<vectormap
+    center="51.4298,6.7742"
+    zoom="12"
+    height="480"
+    route-panel
+    route-to="Am Schuermannshuett 40g, 47441 Moers"
+    route-to-popup="<strong>KLXM Crossmedia GmbH</strong><br>klxm.de"
+    route-to-locked
+    route-mode="driving"
+    controls-cluster="left"
+    controls-style="minimal">
+</vectormap>
+```
+
+#### 3) Routing-Seite (Panel als echte Spalte)
+
+```html
+<vectormap
+    center="51.165691,10.451526"
+    zoom="6"
+    height="520"
+    route-panel
+    route-panel-layout="side-right"
+    route-panel-width="360"
+    route-panel-style="brand"
+    route-from="Berlin HBF"
+    route-to="Leipzig Hauptbahnhof"
+    controls-cluster="left"
+    locate
+    show-satellite>
+</vectormap>
+```
+
+---
+
+### Control-Design per CSS-Variablen
+
+Die MapLibre-Buttons (`+`, `−`, Kompass, Fullscreen) können gemeinsam mit Locate/Satellit eingefärbt werden:
+
+```html
+<vectormap
+    locate
+    show-satellite
+    fullscreen
+    controls-style="rail"
+    controls-position="top-right"
+    buttons-position="top-right"
+    style="
+        --vm-nav-bg: rgba(12, 20, 32, .82);
+        --vm-nav-color: #dbeafe;
+        --vm-nav-hover-bg: rgba(30, 64, 175, .75);
+        --vm-nav-active-bg: #38bdf8;
+        --vm-nav-active-color: #0c1b2d;
+        --vm-tool-bg: rgba(12, 20, 32, .82);
+        --vm-tool-color: #dbeafe;
+    ">
+</vectormap>
+```
+
+Wichtige Variablen: `--vm-nav-bg`, `--vm-nav-color`, `--vm-nav-hover-bg`, `--vm-nav-active-bg`, `--vm-nav-active-color`, `--vm-nav-border`, `--vm-nav-shadow`, `--vm-nav-size`, `--vm-tool-*`.
+
+#### Sinnvolle Defaults (ohne Zusatzaufwand)
+
+- Navigation + Locate + Satellit werden standardmäßig als gemeinsamer Control-Cluster positioniert.
+- `buttons-position` folgt automatisch der Control-Ecke (via `controls-position` oder `controls-cluster`).
+- Für individuelle Layouts können `controls-position`, `buttons-position`, `locate-position`, `satellite-position` weiterhin optional separat gesetzt werden.
+
+#### Automatische Kollisionsvermeidung
+
+- Der Abstand für Locate/Satellit wird nicht über fixe Schätzwerte, sondern über die reale Höhe der gerenderten MapLibre-Control-Ecke berechnet.
+- Dadurch werden Überlagerungen mit `+/-`, Kompass und Fullscreen in unterschiedlichen Themes/Styles zuverlässig vermieden.
+
+---
+
+### Signature Styles (Nicht-Standard-Look)
+
+Zwei kuratierte Richtungen, wenn die Karte bewusst nicht nach klassischer Standard-Map aussehen soll.
+
+#### 1) Editorial Warm
+
+```html
+<style>
+vectormap.vm-skin-signature-editorial {
+    --vm-nav-size: 34px;
+    --vm-nav-radius: 14px;
+    --vm-nav-bg: #f7f3ea;
+    --vm-nav-color: #2f2a24;
+    --vm-nav-border: 1px solid rgba(87, 76, 61, .22);
+    --vm-nav-shadow: 0 10px 26px rgba(67, 56, 42, .22);
+    --vm-nav-hover-bg: #efe7d8;
+    --vm-nav-hover-color: #111827;
+    --vm-nav-active-bg: #c67b4e;
+    --vm-nav-active-color: #fffaf4;
+    --vm-tool-bg: #f7f3ea;
+    --vm-tool-color: #2f2a24;
+    --vm-tool-border: 1px solid rgba(87, 76, 61, .22);
+    --vm-tool-shadow: 0 10px 26px rgba(67, 56, 42, .22);
+    --vm-tool-hover-bg: #efe7d8;
+    --vm-tool-hover-color: #111827;
+    --vm-tool-active-bg: #c67b4e;
+    --vm-tool-active-color: #fffaf4;
+}
+</style>
+
+<vectormap
+    class="vm-skin-signature-editorial"
+    locate
+    show-satellite
+    fullscreen
+    controls-position="top-left"
+    buttons-position="top-left"
+    route-panel
+    route-panel-style="brand"
+    route-panel-position="bottom-left">
+</vectormap>
+```
+
+#### 2) Transit Tech
+
+```html
+<style>
+vectormap.vm-skin-signature-transit {
+    --vm-nav-size: 35px;
+    --vm-nav-radius: 8px;
+    --vm-nav-bg: rgba(20, 26, 38, .9);
+    --vm-nav-color: #d9e7ff;
+    --vm-nav-border: 1px solid rgba(99, 120, 160, .38);
+    --vm-nav-shadow: 0 12px 28px rgba(3, 8, 17, .45);
+    --vm-nav-hover-bg: rgba(37, 54, 92, .92);
+    --vm-nav-hover-color: #f0f6ff;
+    --vm-nav-active-bg: #00c2a8;
+    --vm-nav-active-color: #06211d;
+    --vm-nav-icon-filter: invert(1) brightness(1.15);
+    --vm-tool-bg: rgba(20, 26, 38, .9);
+    --vm-tool-color: #d9e7ff;
+    --vm-tool-border: 1px solid rgba(99, 120, 160, .38);
+    --vm-tool-shadow: 0 12px 28px rgba(3, 8, 17, .45);
+    --vm-tool-hover-bg: rgba(37, 54, 92, .92);
+    --vm-tool-hover-color: #f0f6ff;
+    --vm-tool-active-bg: #00c2a8;
+    --vm-tool-active-color: #06211d;
+}
+</style>
+
+<vectormap
+    class="vm-skin-signature-transit"
+    locate
+    show-satellite
+    fullscreen
+    controls-position="top-right"
+    buttons-position="top-right"
+    route-panel
+    route-panel-style="glass"
+    route-panel-position="bottom-left">
+</vectormap>
+```
 
 ---
 
@@ -295,7 +566,7 @@ Zwei Möglichkeiten, ESRI World Imagery (kostenlos, kein API-Key) zu nutzen:
 | `satellite` | Reines Satellitenbild (ESRI World Imagery) |
 | `show-satellite` | Toggle-Button zum Wechsel zwischen aktuellem Vektorstil und Satellitenbild |
 
-Der `show-satellite` Toggle-Button erscheint unten rechts. Marker bleiben beim Wechsel erhalten, GeoJSON-Layer werden nach Rückkehr zur Vektorkarte automatisch neu geladen.
+Der `show-satellite` Toggle-Button erscheint in der aktiven Button-/Control-Ecke (Default: gemeinsam oben rechts). Marker bleiben beim Wechsel erhalten, GeoJSON-Layer werden nach Rückkehr zur Vektorkarte automatisch neu geladen.
 
 > **Hinweis:** ESRI World Imagery und das Referenz-Overlay sind frei nutzbar (Lizenz: Esri Master License Agreement). Attribution wird automatisch gesetzt. Für gewerbliche Hochlast-Szenarien empfiehlt sich ein eigener Tile-Server.
 

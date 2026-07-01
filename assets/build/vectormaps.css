@@ -247,6 +247,18 @@ vectormap.vm-theme-ready {
 /* Design-Tokens pro Karte via CSS-Variablen (auf vectormap/vector-map setzbar) */
 vectormap,
 vector-map {
+    --vm-nav-size: 30px;
+    --vm-nav-radius: 8px;
+    --vm-nav-bg: #ffffff;
+    --vm-nav-color: #1f2933;
+    --vm-nav-border: 1px solid rgba(15, 23, 42, .16);
+    --vm-nav-shadow: 0 6px 14px rgba(15, 23, 42, .18);
+    --vm-nav-hover-bg: #eff6ff;
+    --vm-nav-hover-color: #1d4ed8;
+    --vm-nav-active-bg: #2b7095;
+    --vm-nav-active-color: #ffffff;
+    --vm-nav-icon-filter: none;
+
     --vm-widget-size: 30px;
     --vm-widget-padding: 5px;
     --vm-widget-radius: 4px;
@@ -258,6 +270,18 @@ vector-map {
     --vm-widget-hover-color: #2b7095;
     --vm-widget-active-bg: #2b7095;
     --vm-widget-active-color: #fff;
+
+    --vm-tool-size: var(--vm-widget-size);
+    --vm-tool-padding: var(--vm-widget-padding);
+    --vm-tool-radius: var(--vm-widget-radius);
+    --vm-tool-bg: var(--vm-widget-bg);
+    --vm-tool-color: var(--vm-widget-color);
+    --vm-tool-border: var(--vm-widget-border);
+    --vm-tool-shadow: var(--vm-widget-shadow);
+    --vm-tool-hover-bg: var(--vm-widget-hover-bg);
+    --vm-tool-hover-color: var(--vm-widget-hover-color);
+    --vm-tool-active-bg: var(--vm-widget-active-bg);
+    --vm-tool-active-color: var(--vm-widget-active-color);
 
     --vm-locate-top: auto;
     --vm-locate-right: 10px;
@@ -340,6 +364,147 @@ vector-map.vm-route-layout-left .vm-route-panel--side {
 }
 
 /* =============================================================================
+   MapLibre Navigation / Kompass / Fullscreen – einfärbbar per CSS-Variablen
+   ============================================================================= */
+vectormap .maplibregl-ctrl-group,
+vector-map .maplibregl-ctrl-group {
+    border: var(--vm-nav-border);
+    border-radius: var(--vm-nav-radius);
+    overflow: hidden;
+    box-shadow: var(--vm-nav-shadow);
+    background: var(--vm-nav-bg);
+}
+
+vectormap .maplibregl-ctrl-group button,
+vector-map .maplibregl-ctrl-group button {
+    width: var(--vm-nav-size);
+    height: var(--vm-nav-size);
+    background: var(--vm-nav-bg);
+    color: var(--vm-nav-color);
+    border: 0;
+}
+
+vectormap .maplibregl-ctrl-group button + button,
+vector-map .maplibregl-ctrl-group button + button {
+    border-top: 1px solid rgba(15, 23, 42, .12);
+}
+
+vectormap .maplibregl-ctrl-group button:hover,
+vector-map .maplibregl-ctrl-group button:hover {
+    background: var(--vm-nav-hover-bg);
+    color: var(--vm-nav-hover-color);
+}
+
+vectormap .maplibregl-ctrl-group button:focus-visible,
+vector-map .maplibregl-ctrl-group button:focus-visible {
+    outline: 2px solid var(--vm-nav-active-bg);
+    outline-offset: -2px;
+}
+
+vectormap .maplibregl-ctrl-group .maplibregl-ctrl-icon,
+vector-map .maplibregl-ctrl-group .maplibregl-ctrl-icon {
+    filter: var(--vm-nav-icon-filter);
+}
+
+vectormap .maplibregl-ctrl-group .maplibregl-ctrl-compass-arrow,
+vector-map .maplibregl-ctrl-group .maplibregl-ctrl-compass-arrow {
+    border-top-color: var(--vm-nav-color);
+}
+
+vectormap .maplibregl-ctrl-group button:active,
+vector-map .maplibregl-ctrl-group button:active,
+vectormap .maplibregl-ctrl-group button.vm-sat-active,
+vector-map .maplibregl-ctrl-group button.vm-sat-active {
+    background: var(--vm-nav-active-bg);
+    color: var(--vm-nav-active-color);
+}
+
+/* Presets für alternative UI-Sprachen */
+vectormap.vm-controls-style-soft,
+vector-map.vm-controls-style-soft {
+    --vm-nav-bg: rgba(255, 255, 255, .88);
+    --vm-nav-border: 1px solid rgba(148, 163, 184, .35);
+    --vm-nav-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+    --vm-nav-radius: 12px;
+    --vm-tool-bg: rgba(255, 255, 255, .88);
+    --vm-tool-border: 1px solid rgba(148, 163, 184, .35);
+    --vm-tool-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+    --vm-tool-radius: 12px;
+}
+
+vectormap.vm-controls-style-rail,
+vector-map.vm-controls-style-rail {
+    --vm-nav-size: 34px;
+    --vm-nav-bg: rgba(15, 23, 42, .74);
+    --vm-nav-color: #e2e8f0;
+    --vm-nav-border: 1px solid rgba(148, 163, 184, .3);
+    --vm-nav-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+    --vm-nav-hover-bg: rgba(30, 64, 175, .72);
+    --vm-nav-hover-color: #dbeafe;
+    --vm-nav-active-bg: #38bdf8;
+    --vm-nav-active-color: #0c1b2d;
+    --vm-nav-icon-filter: invert(1) brightness(1.15);
+    --vm-tool-size: 34px;
+    --vm-tool-bg: rgba(15, 23, 42, .74);
+    --vm-tool-color: #e2e8f0;
+    --vm-tool-border: 1px solid rgba(148, 163, 184, .3);
+    --vm-tool-shadow: 0 10px 24px rgba(0, 0, 0, .35);
+    --vm-tool-hover-bg: rgba(30, 64, 175, .72);
+    --vm-tool-hover-color: #dbeafe;
+    --vm-tool-active-bg: #38bdf8;
+    --vm-tool-active-color: #0c1b2d;
+}
+
+vectormap.vm-controls-style-minimal,
+vector-map.vm-controls-style-minimal {
+    --vm-nav-size: 28px;
+    --vm-nav-bg: rgba(255, 255, 255, .82);
+    --vm-nav-color: #1f2933;
+    --vm-nav-border: 1px solid rgba(15, 23, 42, .08);
+    --vm-nav-shadow: none;
+    --vm-nav-radius: 6px;
+    --vm-nav-hover-bg: rgba(226, 232, 240, .8);
+    --vm-nav-hover-color: #0f172a;
+    --vm-nav-active-bg: #0f172a;
+    --vm-nav-active-color: #f8fafc;
+    --vm-tool-size: 28px;
+    --vm-tool-bg: rgba(255, 255, 255, .82);
+    --vm-tool-color: #1f2933;
+    --vm-tool-border: 1px solid rgba(15, 23, 42, .08);
+    --vm-tool-shadow: none;
+    --vm-tool-radius: 6px;
+    --vm-tool-hover-bg: rgba(226, 232, 240, .8);
+    --vm-tool-hover-color: #0f172a;
+    --vm-tool-active-bg: #0f172a;
+    --vm-tool-active-color: #f8fafc;
+}
+
+vectormap.vm-controls-style-bold,
+vector-map.vm-controls-style-bold {
+    --vm-nav-size: 36px;
+    --vm-nav-bg: #0f172a;
+    --vm-nav-color: #cbd5e1;
+    --vm-nav-border: 1px solid rgba(96, 165, 250, .45);
+    --vm-nav-shadow: 0 12px 28px rgba(15, 23, 42, .4);
+    --vm-nav-radius: 14px;
+    --vm-nav-hover-bg: #1e293b;
+    --vm-nav-hover-color: #93c5fd;
+    --vm-nav-active-bg: #2563eb;
+    --vm-nav-active-color: #ffffff;
+    --vm-nav-icon-filter: invert(1) brightness(1.1);
+    --vm-tool-size: 36px;
+    --vm-tool-bg: #0f172a;
+    --vm-tool-color: #cbd5e1;
+    --vm-tool-border: 1px solid rgba(96, 165, 250, .45);
+    --vm-tool-shadow: 0 12px 28px rgba(15, 23, 42, .4);
+    --vm-tool-radius: 14px;
+    --vm-tool-hover-bg: #1e293b;
+    --vm-tool-hover-color: #93c5fd;
+    --vm-tool-active-bg: #2563eb;
+    --vm-tool-active-color: #ffffff;
+}
+
+/* =============================================================================
    Locate-Button (Standort-Ermittlung) — schwebend über der Karte
    ============================================================================= */
 .vm-locate-widget {
@@ -349,24 +514,24 @@ vector-map.vm-route-layout-left .vm-route-panel--side {
     bottom: var(--vm-locate-bottom);
     left: var(--vm-locate-left);
     z-index: 10;
-    width: var(--vm-widget-size);
-    height: var(--vm-widget-size);
-    padding: var(--vm-widget-padding);
-    background: var(--vm-widget-bg);
-    border: var(--vm-widget-border);
-    border-radius: var(--vm-widget-radius);
-    box-shadow: var(--vm-widget-shadow);
+    width: var(--vm-tool-size);
+    height: var(--vm-tool-size);
+    padding: var(--vm-tool-padding);
+    background: var(--vm-tool-bg);
+    border: var(--vm-tool-border);
+    border-radius: var(--vm-tool-radius);
+    box-shadow: var(--vm-tool-shadow);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--vm-widget-color);
+    color: var(--vm-tool-color);
     transition: background .15s, color .15s;
 }
 
 .vm-locate-widget:hover {
-    background: var(--vm-widget-hover-bg);
-    color: var(--vm-widget-hover-color);
+    background: var(--vm-tool-hover-bg);
+    color: var(--vm-tool-hover-color);
 }
 
 .vm-locate-widget svg,
@@ -402,6 +567,15 @@ body.rex-theme-dark vector-map {
     --vm-widget-bg: #2a2a2a;
     --vm-widget-color: #d0d0d0;
     --vm-widget-shadow: 0 0 0 2px rgba(255, 255, 255, .12);
+    --vm-nav-bg: #2a2a2a;
+    --vm-nav-color: #d0d0d0;
+    --vm-nav-border: 1px solid rgba(255, 255, 255, .14);
+    --vm-nav-shadow: 0 8px 20px rgba(0, 0, 0, .42);
+    --vm-nav-hover-bg: #3b3b3b;
+    --vm-nav-hover-color: #f1f5f9;
+    --vm-nav-active-bg: #7ab8d4;
+    --vm-nav-active-color: #0f202a;
+    --vm-nav-icon-filter: invert(1) brightness(1.05);
     --vm-info-bg: rgba(24, 24, 24, .95);
     --vm-info-color: #e6eef7;
 }
@@ -412,6 +586,15 @@ body.rex-theme-dark vector-map {
         --vm-widget-bg: #2a2a2a;
         --vm-widget-color: #d0d0d0;
         --vm-widget-shadow: 0 0 0 2px rgba(255, 255, 255, .12);
+        --vm-nav-bg: #2a2a2a;
+        --vm-nav-color: #d0d0d0;
+        --vm-nav-border: 1px solid rgba(255, 255, 255, .14);
+        --vm-nav-shadow: 0 8px 20px rgba(0, 0, 0, .42);
+        --vm-nav-hover-bg: #3b3b3b;
+        --vm-nav-hover-color: #f1f5f9;
+        --vm-nav-active-bg: #7ab8d4;
+        --vm-nav-active-color: #0f202a;
+        --vm-nav-icon-filter: invert(1) brightness(1.05);
         --vm-info-bg: rgba(24, 24, 24, .95);
         --vm-info-color: #e6eef7;
     }
@@ -427,30 +610,30 @@ body.rex-theme-dark vector-map {
     bottom: var(--vm-satellite-bottom);
     left: var(--vm-satellite-left);
     z-index: 10;
-    width: var(--vm-widget-size);
-    height: var(--vm-widget-size);
-    padding: var(--vm-widget-padding);
-    background: var(--vm-widget-bg);
-    border: var(--vm-widget-border);
-    border-radius: var(--vm-widget-radius);
-    box-shadow: var(--vm-widget-shadow);
+    width: var(--vm-tool-size);
+    height: var(--vm-tool-size);
+    padding: var(--vm-tool-padding);
+    background: var(--vm-tool-bg);
+    border: var(--vm-tool-border);
+    border-radius: var(--vm-tool-radius);
+    box-shadow: var(--vm-tool-shadow);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--vm-widget-color);
+    color: var(--vm-tool-color);
     transition: background .15s, color .15s;
 }
 
 .vm-satellite-widget:hover {
-    background: var(--vm-widget-hover-bg);
-    color: var(--vm-widget-hover-color);
+    background: var(--vm-tool-hover-bg);
+    color: var(--vm-tool-hover-color);
 }
 
 .vm-satellite-widget--active {
-    background: var(--vm-widget-active-bg);
-    color: var(--vm-widget-active-color);
-    box-shadow: 0 0 0 2px var(--vm-widget-active-bg);
+    background: var(--vm-tool-active-bg);
+    color: var(--vm-tool-active-color);
+    box-shadow: 0 0 0 2px var(--vm-tool-active-bg);
 }
 
 .vm-satellite-widget--active:hover {
