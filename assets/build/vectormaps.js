@@ -1,3 +1,22 @@
+// Upstream-Noisefilter: MapLibre kann bei manchen OFM-Styles wiederholt
+// "Expected value to be of type number, but found null instead." loggen.
+// Das ist aktuell ein bekanntes, nicht-funktionales Warnrauschen im Worker-Pfad.
+(function vmSilenceKnownMaplibreWarning() {
+    if (window.__vmConsoleWarnPatched) return;
+    window.__vmConsoleWarnPatched = true;
+
+    const originalWarn = console.warn.bind(console);
+    const noisyText = 'Expected value to be of type number, but found null instead.';
+
+    console.warn = function (...args) {
+        const first = args[0];
+        if (typeof first === 'string' && first.indexOf(noisyText) !== -1) {
+            return;
+        }
+        originalWarn(...args);
+    };
+})();
+
 class VectorMapPicker {
     constructor() {
         this.i18n = this.loadI18n();
@@ -414,6 +433,7 @@ class VectorMapPicker {
             this.map = new maplibregl.Map({
                 container: 'vm-picker-map',
                 style: this.proxyStyleUrl(this.currentPickerStyle || 'liberty'),
+                validateStyle: false,
                 center: [startLng, startLat],
                 zoom: startZoom,
                 transformRequest: this.createTransformRequest()
@@ -592,6 +612,7 @@ class VectorMapPicker {
         this.demoMap = new maplibregl.Map({
             container: 'vm-demo-map',
             style: this.proxyStyleUrl('liberty'),
+            validateStyle: false,
             center: [10.4515, 51.1656],
             zoom: 5.5,
             pitch: 45,
@@ -979,6 +1000,134 @@ function vmWrapGetWithCoalesce(expr, prop) {
 }
 
 /**
+ * Ersetzt rekursiv alle ['get', ...]-Expressions durch
+ * ['coalesce', ['get', ...], 0], damit numerische Properties bei
+ * fehlenden/null Featurewerten nicht warnen.
+ * @param {*} expr
+ * @returns {*}
+ */
+function vmWrapAnyGetWithCoalesce(expr) {
+    if (!Array.isArray(expr)) return expr;
+    if (expr[0] === 'get') return ['coalesce', expr, 0];
+    return expr.map((entry) => vmWrapAnyGetWithCoalesce(entry));
+}
+
+/**
+ * Ersetzt rekursiv alle null-Literale in numerischen Expressions durch 0.
+ * Einige externe Styles enthalten in Extrusion-Expressions null-Fallbacks,
+ * die in MapLibre Warnungen auslösen.
+ * @param {*} expr
+ * @returns {*}
+ */
+function vmReplaceNullWithZero(expr) {
+    if (expr === null) return 0;
+    if (!Array.isArray(expr)) return expr;
+    return expr.map((entry) => vmReplaceNullWithZero(entry));
+}
+
+/**
+ * Prüft rekursiv, ob ein Expression-Array null enthält.
+ * @param {*} expr
+ * @returns {boolean}
+ */
+function vmExprHasNull(expr) {
+    if (expr === null) return true;
+    if (!Array.isArray(expr)) return false;
+    return expr.some((entry) => vmExprHasNull(entry));
+}
+
+/**
+ * Härtet numerische Paint-Properties allgemein gegen null in Expressions.
+ * Damit werden MapLibre-Warnungen aus externen Styles reduziert, die
+ * bei der Expression-Evaluation null statt number liefern.
+ * @param {maplibregl.Map} map
+ */
+function vmFixNumericPaintExpressions(map) {
+    const layers = map.getStyle()?.layers;
+    if (!layers) return;
+
+    // Nur numerische Paint-Properties patchen (Farbwerte unberührt lassen).
+    const numericPropPattern = /(width|radius|opacity|size|height|base|blur|offset|padding|gap|spacing)$/;
+
+    for (const layer of layers) {
+        const paint = layer.paint;
+        if (!paint || typeof paint !== 'object') continue;
+
+        for (const [prop, value] of Object.entries(paint)) {
+            if (!numericPropPattern.test(prop)) continue;
+
+            let patched = value;
+            if (patched === null) {
+                patched = 0;
+            } else if (Array.isArray(patched) && vmExprHasNull(patched)) {
+                patched = vmReplaceNullWithZero(patched);
+            }
+
+            if (Array.isArray(patched)) {
+                patched = vmWrapAnyGetWithCoalesce(patched);
+                patched = vmReplaceNullWithZero(patched);
+            }
+
+            if (JSON.stringify(patched) === JSON.stringify(value)) continue;
+
+            try {
+                map.setPaintProperty(layer.id, prop, patched);
+            } catch (_) {}
+        }
+    }
+}
+
+/**
+ * Härtet numerische Layout-Properties gegen null in Expressions.
+ * Einige Styles liefern hier null-Werte, die beim Evaluate in Warnungen enden.
+ * @param {maplibregl.Map} map
+ */
+function vmFixNumericLayoutExpressions(map) {
+    const layers = map.getStyle()?.layers;
+    if (!layers) return;
+
+    const numericLayoutProps = new Set([
+        'icon-size',
+        'icon-offset',
+        'icon-rotate',
+        'text-size',
+        'text-offset',
+        'text-rotate',
+        'text-letter-spacing',
+        'text-line-height',
+        'text-max-width',
+        'symbol-spacing',
+    ]);
+
+    for (const layer of layers) {
+        const layout = layer.layout;
+        if (!layout || typeof layout !== 'object') continue;
+
+        for (const [prop, value] of Object.entries(layout)) {
+            if (!numericLayoutProps.has(prop)) continue;
+
+            let patched = value;
+            if (patched === null) {
+                patched = 0;
+            } else if (Array.isArray(patched) && vmExprHasNull(patched)) {
+                patched = vmReplaceNullWithZero(patched);
+            }
+
+            if (Array.isArray(patched)) {
+                patched = vmWrapAnyGetWithCoalesce(patched);
+                patched = vmReplaceNullWithZero(patched);
+            }
+
+            if (JSON.stringify(patched) === JSON.stringify(value)) continue;
+
+            try {
+                map.setLayoutProperty(layer.id, prop, patched);
+            } catch (_) {}
+        }
+    }
+}
+
+/**
  * Patcht alle fill-extrusion-Layer im geladenen Style (inkl. OFM-eigene)
  * so dass fehlende height/min_height-Werte mit 0 ersetzt werden.
  * @param {maplibregl.Map} map
@@ -992,17 +1141,22 @@ function vmFixExtrusionLayers(map) {
             const h = map.getPaintProperty(layer.id, 'fill-extrusion-height');
             const b = map.getPaintProperty(layer.id, 'fill-extrusion-base');
             if (h !== undefined && h !== null) {
-                const patched = vmWrapGetWithCoalesce(h, 'height');
+                const patched = vmReplaceNullWithZero(vmWrapGetWithCoalesce(h, 'height'));
                 if (JSON.stringify(patched) !== JSON.stringify(h))
                     map.setPaintProperty(layer.id, 'fill-extrusion-height', patched);
             }
             if (b !== undefined && b !== null) {
-                const patched = vmWrapGetWithCoalesce(b, 'min_height');
+                const patched = vmReplaceNullWithZero(vmWrapGetWithCoalesce(b, 'min_height'));
                 if (JSON.stringify(patched) !== JSON.stringify(b))
                     map.setPaintProperty(layer.id, 'fill-extrusion-base', patched);
             }
         } catch (_) {}
     }
+
+    // Zusätzlich generische Null→0-Härtung für numerische Paint-Expressions.
+    vmFixNumericPaintExpressions(map);
+    // Und für numerische Layout-Expressions (z. B. text-size / icon-size).
+    vmFixNumericLayoutExpressions(map);
 }
 
 /**
@@ -1658,6 +1812,7 @@ function vmBuildMap(el) {
     const map = new maplibregl.Map({
         container,
         style: vmProxyStyleUrl(mapStyle),
+        validateStyle: false,
         center: [startLng, startLat],
         zoom,
         minZoom,
@@ -2493,6 +2648,8 @@ function vmAddRoutePanel(el, map) {
     setupSuggest(fromInput);
     if (!toLocked) setupSuggest(toInput);  // kein Autocomplete wenn gesperrt
 
+    let showDestination = async () => {};
+
     // Route berechnen
     calcBtn.addEventListener('click', async () => {
         const fromVal = fromInput.value.trim();
@@ -2541,7 +2698,7 @@ function vmAddRoutePanel(el, map) {
     // Nur Ziel bekannt → Adresse geocodieren, Marker + Kartenzentrierung
     if (!initFrom && initTo) {
         const customPopup = el.getAttribute('route-to-popup') || null;
-        const showDestination = async () => {
+        showDestination = async () => {
             try {
                 const [lat, lng, label] = await vmResolveLocation(initTo);
                 map.flyTo({ center: [lng, lat], zoom: 14, duration: 0 });

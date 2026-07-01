@@ -1,17 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-hidden="true">
   <defs>
-    <linearGradient id="vm-map" x1="8" x2="56" y1="8" y2="56" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#20b7c9"/>
-      <stop offset="0.52" stop-color="#16788e"/>
-      <stop offset="1" stop-color="#0d3b57"/>
+    <linearGradient id="vm-bg" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3f7fe3"/>
+      <stop offset="1" stop-color="#1f4d9f"/>
     </linearGradient>
-    <linearGradient id="vm-pin" x1="21" x2="43" y1="18" y2="47" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ffb14a"/>
-      <stop offset="0.58" stop-color="#ff7a45"/>
-      <stop offset="1" stop-color="#e34a53"/>
+    <linearGradient id="vm-marker" x1="24" y1="16" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffbf57"/>
+      <stop offset="1" stop-color="#f57a00"/>
     </linearGradient>
   </defs>
-  <path fill="url(#vm-map)" d="M8 14.5 23 8l18 6 15-6v41.5L41 56l-18-6-15 6Zm4 5.4v29.8l10-4V15.9Zm14-4.1v29.8l12 4V20l-12-4Zm16 4.1v29.8l10-4V15.9Z"/>
-  <path fill="url(#vm-pin)" d="M32 18c-6.1 0-11 4.9-11 11 0 8.3 11 18 11 18s11-9.7 11-18c0-6.1-4.9-11-11-11Zm0 15.4a4.4 4.4 0 1 1 0-8.8 4.4 4.4 0 0 1 0 8.8Z"/>
-  <circle cx="32" cy="29" r="3.3" fill="#fff6de"/>
+
+  <rect x="3" y="3" width="58" height="58" rx="13" fill="url(#vm-bg)"/>
+
+  <path
+    d="M32 15.5c-6.1 0-11 4.9-11 11 0 8.3 11 21 11 21s11-12.7 11-21c0-6.1-4.9-11-11-11Zm0 16.7a5.2 5.2 0 1 1 0-10.4 5.2 5.2 0 0 1 0 10.4Z"
+    fill="url(#vm-marker)"
+  />
+  <circle cx="32" cy="27" r="3.2" fill="#fff5dc"/>
+
+  <rect x="24.2" y="50.2" width="15.6" height="4.6" rx="2.3" fill="#ffffff" opacity="0.95"/>
 </svg>

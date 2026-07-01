@@ -123,6 +123,9 @@ class Proxy
         $cached = glob($cacheBase . '.*');
         if (is_array($cached) && !empty($cached) && file_exists($cached[0])) {
             $ext = pathinfo($cached[0], PATHINFO_EXTENSION);
+            if ('json' === strtolower($ext)) {
+                self::sanitizeCachedStyleJsonFile($cached[0]);
+            }
             self::serveFile($cached[0], $ext);
             exit;
         }
@@ -236,6 +239,10 @@ class Proxy
             $ext = 'bin';
         }
 
+        if ('json' === $ext) {
+            $content = self::sanitizeStyleJsonString((string) $content);
+        }
+
         $cacheFile = $cacheBase . '.' . $ext;
         rex_file::put($cacheFile, $content);
 
@@ -251,5 +258,97 @@ class Proxy
         rex_response::setHeader('Access-Control-Allow-Origin', '*');
         rex_response::sendFile($filePath, $contentType);
         exit;
+    }
+
+    private static function sanitizeCachedStyleJsonFile(string $filePath): void
+    {
+        $raw = rex_file::get($filePath);
+        if (!is_string($raw) || '' === $raw) {
+            return;
+        }
+
+        $sanitized = self::sanitizeStyleJsonString($raw);
+        if ($sanitized !== $raw) {
+            rex_file::put($filePath, $sanitized);
+        }
+    }
+
+    private static function sanitizeStyleJsonString(string $raw): string
+    {
+        $data = json_decode($raw, true);
+        if (!is_array($data)) {
+            return $raw;
+        }
+
+        // Nur echte Style-Dokumente anpassen (nicht Geocoder-/Routing-JSON etc.).
+        if (!isset($data['version'], $data['layers'], $data['sources']) || !is_array($data['layers'])) {
+            return $raw;
+        }
+
+        $changed = false;
+
+        foreach ($data['layers'] as $layerIndex => $layer) {
+            if (!is_array($layer)) {
+                continue;
+            }
+
+            foreach (['paint', 'layout'] as $section) {
+                if (!isset($layer[$section]) || !is_array($layer[$section])) {
+                    continue;
+                }
+
+                foreach ($layer[$section] as $prop => $value) {
+                    if (!self::isLikelyNumericStyleProperty((string) $prop)) {
+                        continue;
+                    }
+
+                    $patched = self::sanitizeNumericStyleExpression($value);
+                    if ($patched !== $value) {
+                        $data['layers'][$layerIndex][$section][$prop] = $patched;
+                        $changed = true;
+                    }
+                }
+            }
+        }
+
+        if (!$changed) {
+            return $raw;
+        }
+
+        $encoded = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return is_string($encoded) ? $encoded : $raw;
+    }
+
+    private static function isLikelyNumericStyleProperty(string $prop): bool
+    {
+        return (bool) preg_match('/(width|radius|opacity|size|height|base|blur|offset|padding|gap|spacing|max-width|line-height|letter-spacing|rotate)$/i', $prop);
+    }
+
+    /**
+     * Rekursiv: null → 0 und ['get', ...] → ['coalesce', ['get', ...], 0]
+     * für numerische Style-Expressions.
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    private static function sanitizeNumericStyleExpression(mixed $value): mixed
+    {
+        if (null === $value) {
+            return 0;
+        }
+
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        if (isset($value[0]) && 'get' === $value[0]) {
+            return ['coalesce', $value, 0];
+        }
+
+        foreach ($value as $k => $entry) {
+            $value[$k] = self::sanitizeNumericStyleExpression($entry);
+        }
+
+        return $value;
     }
 }
