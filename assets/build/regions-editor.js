@@ -107,6 +107,51 @@
         return fallback || '#2f855a';
     }
 
+    // Erlaubt Hex (inkl. Alpha), rgb(a) und hsl(a) – für freie Eingabe inkl. Transparenz.
+    function ensureCssColor(value, fallback) {
+        var color = String(value || '').trim();
+        if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(color)) {
+            return color;
+        }
+        if (/^(rgb|rgba|hsl|hsla)\(\s*[\d.,%\s\/-]+\)$/i.test(color)) {
+            return color;
+        }
+
+        return fallback;
+    }
+
+    function clampOpacity(value, fallback) {
+        var num = Number(value);
+        if (!Number.isFinite(num)) {
+            return fallback;
+        }
+
+        return Math.min(1, Math.max(0, num));
+    }
+
+    function defaultColors() {
+        return {
+            active: '#2f855a',
+            inactive: '#9ca3af',
+            active_opacity: 0.42,
+            inactive_opacity: 0.15,
+        };
+    }
+
+    function normalizeColors(raw) {
+        var defaults = defaultColors();
+        if (!raw || typeof raw !== 'object') {
+            return defaults;
+        }
+
+        return {
+            active: ensureCssColor(raw.active, defaults.active),
+            inactive: ensureCssColor(raw.inactive, defaults.inactive),
+            active_opacity: clampOpacity(raw.active_opacity, defaults.active_opacity),
+            inactive_opacity: clampOpacity(raw.inactive_opacity, defaults.inactive_opacity),
+        };
+    }
+
     function buildProxyUrl(proxyBase, targetUrl) {
         var url = new URL(proxyBase, window.location.origin);
         url.searchParams.set('target_url', targetUrl);
@@ -147,13 +192,14 @@
             id: uid('region'),
             key: '',
             name: '',
-            color: '#2f855a',
+            color: '',
             url: '',
             info: '',
             countrycodes: 'de',
             search: '',
             searchResults: [],
             cities: [],
+            showAllCities: false,
             busy: false,
         };
     }
@@ -161,6 +207,7 @@
     function normalizeState(raw) {
         var state = {
             description: String(raw && raw.description ? raw.description : ''),
+            colors: normalizeColors(raw && raw.colors),
             regions: [],
         };
 
@@ -170,10 +217,11 @@
             region.id = String(regionRaw.id || uid('region'));
             region.key = String(regionRaw.key || '');
             region.name = String(regionRaw.name || '');
-            region.color = ensureHexColor(regionRaw.color, '#2f855a');
+            region.color = ensureCssColor(regionRaw.color, '');
             region.url = String(regionRaw.url || '');
             region.info = String(regionRaw.info || '');
             region.countrycodes = String(regionRaw.countrycodes || 'de');
+            region.showAllCities = !!regionRaw.showAllCities;
             region.cities = Array.isArray(regionRaw.cities) ? regionRaw.cities.map(function (cityRaw) {
                 var geometry = cityRaw && cityRaw.geometry && typeof cityRaw.geometry === 'object'
                     ? cityRaw.geometry
@@ -188,6 +236,7 @@
                     url: String(cityRaw.url || ''),
                     info: String(cityRaw.info || ''),
                     area_km2: Number(cityRaw.area_km2 || 0),
+                    active: cityRaw.active !== false,
                 };
             }).filter(function (city) {
                 return city.geometry && city.name;
@@ -202,11 +251,12 @@
     function stateToPayload(state) {
         return {
             description: String(state.description || ''),
+            colors: normalizeColors(state.colors),
             regions: state.regions.map(function (region) {
                 return {
                     key: String(region.key || ''),
                     name: String(region.name || ''),
-                    color: ensureHexColor(region.color, '#2f855a'),
+                    color: ensureCssColor(region.color, ''),
                     url: String(region.url || ''),
                     info: String(region.info || ''),
                     countrycodes: String(region.countrycodes || 'de'),
@@ -220,86 +270,11 @@
                             url: city.url,
                             info: city.info,
                             area_km2: city.area_km2,
+                            active: city.active !== false,
                         };
                     }),
                 };
             }),
-        };
-    }
-
-    function buildGeoJson(state, groupKey, groupName) {
-        var features = [];
-
-        state.regions.forEach(function (region) {
-            var regionKey = String(region.key || '').trim() || region.id;
-            var regionName = String(region.name || '').trim() || regionKey;
-            var fill = ensureHexColor(region.color, '#2f855a');
-            var regionUrl = String(region.url || '').trim();
-            var regionInfo = String(region.info || '').trim();
-            var regionPolygons = [];
-            var regionArea = 0;
-
-            region.cities.forEach(function (city) {
-                if (!city.geometry) {
-                    return;
-                }
-
-                var cityArea = Number(city.area_km2 || 0);
-                regionArea += cityArea;
-
-                features.push({
-                    type: 'Feature',
-                    geometry: city.geometry,
-                    properties: {
-                        level: 'city',
-                        group_key: groupKey,
-                        group_name: groupName,
-                        region_key: regionKey,
-                        region_name: regionName,
-                        name: city.name,
-                        display_name: city.display_name,
-                        fill: fill,
-                        url: String(city.url || '').trim(),
-                        region_url: regionUrl,
-                        info: String(city.info || '').trim(),
-                        area_km2: cityArea,
-                        osm_type: city.osm_type,
-                        osm_id: city.osm_id,
-                    },
-                });
-
-                flattenGeometryPolygons(city.geometry).forEach(function (polygon) {
-                    regionPolygons.push(polygon);
-                });
-            });
-
-            if (regionPolygons.length) {
-                features.push({
-                    type: 'Feature',
-                    geometry: {
-                        type: 'MultiPolygon',
-                        coordinates: regionPolygons,
-                    },
-                    properties: {
-                        level: 'region',
-                        group_key: groupKey,
-                        group_name: groupName,
-                        region_key: regionKey,
-                        region_name: regionName,
-                        name: regionName,
-                        fill: fill,
-                        url: regionUrl,
-                        info: regionInfo,
-                        area_km2: Number(regionArea.toFixed(3)),
-                        city_count: region.cities.length,
-                    },
-                });
-            }
-        });
-
-        return {
-            type: 'FeatureCollection',
-            features: features,
         };
     }
 
@@ -323,6 +298,11 @@
     }
 
     function createBuilder(root) {
+        var MAX_PRETTY_GEOJSON_FEATURES = 120;
+        var MAX_BOUNDS_POINTS = 4000;
+        var MAX_PREVIEW_CITY_FEATURES = 280;
+        var MAX_VISIBLE_CITY_ROWS = 180;
+
         var regionList = $('#vm-region-list', root);
         var addRegionButton = $('#vm-add-region', root);
         var payloadInput = $('#vm-group-payload');
@@ -333,6 +313,13 @@
         var statRegions = $('#vm-stat-regions');
         var statCities = $('#vm-stat-cities');
         var statArea = $('#vm-stat-area');
+        var form = $('#vm-region-group-form');
+        var colorControls = {
+            active: { text: $('#vm-color-active'), picker: $('#vm-color-active-picker') },
+            inactive: { text: $('#vm-color-inactive'), picker: $('#vm-color-inactive-picker') },
+            activeOpacity: $('#vm-opacity-active'),
+            inactiveOpacity: $('#vm-opacity-inactive'),
+        };
 
         var proxyBase = root.getAttribute('data-proxy-url') || '';
         var initialPayloadRaw = root.getAttribute('data-initial-payload') || '{}';
@@ -342,9 +329,96 @@
         var map = null;
         var popup = null;
         var sourceId = 'vm-group-preview-source';
+        var syncQueued = false;
+        var syncOptions = { fit: false, persistPayload: false };
+        var fitBoundsToken = 0;
+        var mapEnabled = false;
+        var mapReady = false;
+        var mapContainer = $('#vm-builder-map');
+        var latestPreviewGeojson = { type: 'FeatureCollection', features: [] };
 
         if (groupDescription) {
             groupDescription.value = state.description || '';
+        }
+
+        function syncColorControlsFromState() {
+            var colors = state.colors;
+
+            if (colorControls.active.text) {
+                colorControls.active.text.value = colors.active;
+            }
+            if (colorControls.active.picker && /^#[0-9a-fA-F]{6}$/.test(colors.active)) {
+                colorControls.active.picker.value = colors.active;
+            }
+            if (colorControls.inactive.text) {
+                colorControls.inactive.text.value = colors.inactive;
+            }
+            if (colorControls.inactive.picker && /^#[0-9a-fA-F]{6}$/.test(colors.inactive)) {
+                colorControls.inactive.picker.value = colors.inactive;
+            }
+            if (colorControls.activeOpacity) {
+                colorControls.activeOpacity.value = String(Math.round(colors.active_opacity * 100));
+            }
+            if (colorControls.inactiveOpacity) {
+                colorControls.inactiveOpacity.value = String(Math.round(colors.inactive_opacity * 100));
+            }
+        }
+
+        function bindColorControls() {
+            ['active', 'inactive'].forEach(function (kind) {
+                var pair = colorControls[kind];
+
+                if (pair.text) {
+                    pair.text.addEventListener('input', function () {
+                        var valid = ensureCssColor(pair.text.value, '');
+                        if (valid) {
+                            state.colors[kind] = valid;
+                            if (pair.picker && /^#[0-9a-fA-F]{6}$/.test(valid)) {
+                                pair.picker.value = valid;
+                            }
+                            queueSync();
+                        }
+                    });
+                }
+
+                if (pair.picker) {
+                    pair.picker.addEventListener('input', function () {
+                        state.colors[kind] = pair.picker.value;
+                        if (pair.text) {
+                            pair.text.value = pair.picker.value;
+                        }
+                        queueSync();
+                    });
+                }
+            });
+
+            if (colorControls.activeOpacity) {
+                colorControls.activeOpacity.addEventListener('input', function () {
+                    state.colors.active_opacity = clampOpacity(Number(colorControls.activeOpacity.value) / 100, state.colors.active_opacity);
+                    queueSync();
+                });
+            }
+
+            if (colorControls.inactiveOpacity) {
+                colorControls.inactiveOpacity.addEventListener('input', function () {
+                    state.colors.inactive_opacity = clampOpacity(Number(colorControls.inactiveOpacity.value) / 100, state.colors.inactive_opacity);
+                    queueSync();
+                });
+            }
+        }
+
+        function renderMapPlaceholder(statusText) {
+            if (!mapContainer || mapEnabled) {
+                return;
+            }
+
+            mapContainer.innerHTML = ''
+                + '<div style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;background:#f8f9fb;border:1px dashed #d5dce3;border-radius:6px">'
+                + '  <div>'
+                + '    <p style="margin:0 0 10px 0;color:#5f6b7a">' + escapeHtml(statusText || 'Live-Preview ist pausiert, um den Editor flüssig zu halten.') + '</p>'
+                + '    <button type="button" class="btn btn-primary btn-sm" data-action="enable-live-preview">Live-Preview aktivieren</button>'
+                + '  </div>'
+                + '</div>';
         }
 
         function mapStyleUrl() {
@@ -352,12 +426,20 @@
         }
 
         function initMap() {
+            if (!mapEnabled) {
+                return;
+            }
+
             if (!window.maplibregl) {
                 return;
             }
 
             if (map) {
                 return;
+            }
+
+            if (mapContainer) {
+                mapContainer.innerHTML = '';
             }
 
             map = new maplibregl.Map({
@@ -388,7 +470,7 @@
                     filter: ['==', ['get', 'level'], 'region'],
                     paint: {
                         'fill-color': ['coalesce', ['get', 'fill'], '#2f855a'],
-                        'fill-opacity': 0.18,
+                        'fill-opacity': ['coalesce', ['get', 'fill_opacity'], 0.18],
                     },
                 });
 
@@ -410,7 +492,7 @@
                     filter: ['==', ['get', 'level'], 'city'],
                     paint: {
                         'fill-color': ['coalesce', ['get', 'fill'], '#2f855a'],
-                        'fill-opacity': 0.42,
+                        'fill-opacity': ['coalesce', ['get', 'fill_opacity'], 0.42],
                     },
                 });
 
@@ -467,11 +549,23 @@
 
                 map.on('click', 'vm-city-fill', clickHandler);
                 map.on('click', 'vm-region-fill', clickHandler);
+
+                mapReady = true;
+                updatePreview(latestPreviewGeojson, true);
             });
         }
 
+        function enableLivePreview() {
+            if (mapEnabled) {
+                return;
+            }
+
+            mapEnabled = true;
+            initMap();
+        }
+
         function fitGeoJsonBounds(geojson) {
-            if (!map || !map.isStyleLoaded()) {
+            if (!map || !mapReady) {
                 return;
             }
 
@@ -480,14 +574,20 @@
             }
 
             var bounds = new maplibregl.LngLatBounds();
+            var pointCount = 0;
 
             function extendCoords(coords) {
                 if (!Array.isArray(coords)) {
                     return;
                 }
 
+                if (pointCount > MAX_BOUNDS_POINTS) {
+                    return;
+                }
+
                 if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
                     bounds.extend([coords[0], coords[1]]);
+                    pointCount += 1;
                     return;
                 }
 
@@ -505,32 +605,161 @@
             }
         }
 
-        function updatePreview(geojson) {
-            if (!map || !map.isStyleLoaded()) {
+        function updatePreview(geojson, shouldFitBounds) {
+            latestPreviewGeojson = geojson;
+
+            if (!mapEnabled) {
+                return;
+            }
+
+            if (!map || !mapReady) {
                 return;
             }
 
             var source = map.getSource(sourceId);
             if (source) {
                 source.setData(geojson);
-                fitGeoJsonBounds(geojson);
+                if (shouldFitBounds) {
+                    var token = ++fitBoundsToken;
+                    window.setTimeout(function () {
+                        if (token !== fitBoundsToken) {
+                            return;
+                        }
+                        fitGeoJsonBounds(geojson);
+                    }, 0);
+                }
             }
         }
 
-        function syncOutputs() {
-            state.description = groupDescription ? String(groupDescription.value || '') : '';
+        function buildPreviewGeoJson(stateData, groupKey, groupName, maxCityFeatures) {
+            var features = [];
+            var cityFeatureCount = 0;
+            var truncated = false;
+            var colors = normalizeColors(stateData.colors);
 
-            var payload = stateToPayload(state);
-            if (payloadInput) {
-                payloadInput.value = JSON.stringify(payload);
+            stateData.regions.forEach(function (region) {
+                if (truncated) {
+                    return;
+                }
+
+                var regionKey = String(region.key || '').trim() || region.id;
+                var regionName = String(region.name || '').trim() || regionKey;
+                var activeFill = ensureCssColor(region.color, '') || colors.active;
+                var inactiveFill = colors.inactive;
+                var regionUrl = String(region.url || '').trim();
+                var regionInfo = String(region.info || '').trim();
+                var regionPolygons = [];
+                var regionArea = 0;
+                var regionCityCount = 0;
+
+                region.cities.forEach(function (city) {
+                    if (truncated || !city.geometry) {
+                        return;
+                    }
+
+                    if (cityFeatureCount >= maxCityFeatures) {
+                        truncated = true;
+                        return;
+                    }
+
+                    var cityActive = city.active !== false;
+                    var cityArea = Number(city.area_km2 || 0);
+                    regionArea += cityArea;
+                    regionCityCount += 1;
+                    cityFeatureCount += 1;
+
+                    features.push({
+                        type: 'Feature',
+                        geometry: city.geometry,
+                        properties: {
+                            level: 'city',
+                            group_key: groupKey,
+                            group_name: groupName,
+                            region_key: regionKey,
+                            region_name: regionName,
+                            name: city.name,
+                            display_name: city.display_name,
+                            active: cityActive,
+                            fill: cityActive ? activeFill : inactiveFill,
+                            fill_opacity: cityActive ? colors.active_opacity : colors.inactive_opacity,
+                            url: String(city.url || '').trim(),
+                            region_url: regionUrl,
+                            info: String(city.info || '').trim(),
+                            area_km2: cityArea,
+                            osm_type: city.osm_type,
+                            osm_id: city.osm_id,
+                        },
+                    });
+
+                    flattenGeometryPolygons(city.geometry).forEach(function (polygon) {
+                        regionPolygons.push(polygon);
+                    });
+                });
+
+                if (regionPolygons.length) {
+                    features.push({
+                        type: 'Feature',
+                        geometry: {
+                            type: 'MultiPolygon',
+                            coordinates: regionPolygons,
+                        },
+                        properties: {
+                            level: 'region',
+                            group_key: groupKey,
+                            group_name: groupName,
+                            region_key: regionKey,
+                            region_name: regionName,
+                            name: regionName,
+                            fill: activeFill,
+                            fill_opacity: Number((colors.active_opacity * 0.45).toFixed(3)),
+                            url: regionUrl,
+                            info: regionInfo,
+                            area_km2: Number(regionArea.toFixed(3)),
+                            city_count: regionCityCount,
+                        },
+                    });
+                }
+            });
+
+            return {
+                geojson: {
+                    type: 'FeatureCollection',
+                    features: features,
+                },
+                truncated: truncated,
+                cityFeatureCount: cityFeatureCount,
+            };
+        }
+
+        function writePayloadNow() {
+            if (!payloadInput) {
+                return;
+            }
+
+            payloadInput.value = JSON.stringify(stateToPayload(state));
+        }
+
+        function syncOutputs(options) {
+            var opts = options || {};
+            state.description = groupDescription ? String(groupDescription.value || '') : '';
+            if (opts.persistPayload) {
+                writePayloadNow();
             }
 
             var groupKey = groupKeyInput ? String(groupKeyInput.value || '') : '';
             var groupName = groupNameInput ? String(groupNameInput.value || '') : '';
-            var geojson = buildGeoJson(state, groupKey, groupName);
+            var preview = buildPreviewGeoJson(state, groupKey, groupName, MAX_PREVIEW_CITY_FEATURES);
+            var geojson = preview.geojson;
 
             if (generatedGeoJson) {
-                generatedGeoJson.value = JSON.stringify(geojson, null, 2);
+                var pretty = geojson.features.length <= MAX_PRETTY_GEOJSON_FEATURES;
+                generatedGeoJson.value = pretty
+                    ? JSON.stringify(geojson, null, 2)
+                    : JSON.stringify(geojson);
+
+                if (preview.truncated) {
+                    generatedGeoJson.value += '\n\nHinweis: Live-Vorschau gekürzt (' + preview.cityFeatureCount + ' Stadtflächen geladen), um die Oberfläche flüssig zu halten.';
+                }
             }
 
             var stats = gatherStats(state);
@@ -538,7 +767,33 @@
             if (statCities) statCities.textContent = stats.cityCount + ' Stadtflächen';
             if (statArea) statArea.textContent = stats.areaTotal.toFixed(2) + ' km²';
 
-            updatePreview(geojson);
+            updatePreview(geojson, !!opts.fit);
+        }
+
+        function queueSync(options) {
+            var opts = options || {};
+            if (opts.fit) {
+                syncOptions.fit = true;
+            }
+            if (opts.persistPayload) {
+                syncOptions.persistPayload = true;
+            }
+
+            if (syncQueued) {
+                return;
+            }
+
+            syncQueued = true;
+            window.setTimeout(function () {
+                var runOptions = {
+                    fit: syncOptions.fit,
+                    persistPayload: syncOptions.persistPayload,
+                };
+                syncQueued = false;
+                syncOptions.fit = false;
+                syncOptions.persistPayload = false;
+                syncOutputs(runOptions);
+            }, 30);
         }
 
         function renderSearchResults(region, target) {
@@ -572,6 +827,15 @@
             }).join('');
         }
 
+        function updateRegionSearchPanel(region) {
+            if (!regionList) {
+                return;
+            }
+
+            var target = regionList.querySelector('[data-search-results="' + region.id + '"]');
+            renderSearchResults(region, target);
+        }
+
         function renderRegions() {
             if (!regionList) {
                 return;
@@ -583,18 +847,30 @@
             }
 
             regionList.innerHTML = state.regions.map(function (region, regionIndex) {
-                var cityRows = region.cities.length
-                    ? region.cities.map(function (city, cityIndex) {
+                var visibleCities = region.showAllCities ? region.cities : region.cities.slice(0, MAX_VISIBLE_CITY_ROWS);
+                var cityRows = visibleCities.length
+                    ? visibleCities.map(function (city, cityIndex) {
                         return ''
-                            + '<tr>'
+                            + '<tr' + (city.active === false ? ' class="text-muted" style="opacity:.65"' : '') + '>'
                             + '<td><strong>' + escapeHtml(city.name) + '</strong><br><small class="text-muted">' + escapeHtml(city.display_name || '') + '</small></td>'
                             + '<td>' + Number(city.area_km2 || 0).toFixed(2) + ' km²</td>'
+                            + '<td style="text-align:center"><input type="checkbox" data-field="city-active" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '"' + (city.active !== false ? ' checked' : '') + ' title="Stadtfläche aktiv/inaktiv"></td>'
                             + '<td><input type="text" class="form-control input-sm" data-field="city-url" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '" value="' + escapeHtml(city.url || '') + '" placeholder="Optionaler Link je Stadtgebiet"></td>'
                             + '<td><input type="text" class="form-control input-sm" data-field="city-info" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '" value="' + escapeHtml(city.info || '') + '" placeholder="Optionaler Info-Text"></td>'
                             + '<td style="width:1%"><button type="button" class="btn btn-xs btn-danger" data-action="remove-city" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '">Entfernen</button></td>'
                             + '</tr>';
                     }).join('')
-                    : '<tr><td colspan="5" class="text-muted">Noch keine Stadtgrenze hinzugefügt.</td></tr>';
+                    : '<tr><td colspan="6" class="text-muted">Noch keine Stadtgrenze hinzugefügt.</td></tr>';
+
+                if (!region.showAllCities && region.cities.length > MAX_VISIBLE_CITY_ROWS) {
+                    cityRows += ''
+                        + '<tr>'
+                        + '<td colspan="6" class="text-muted">'
+                        + 'Zur Performance werden ' + MAX_VISIBLE_CITY_ROWS + ' von ' + region.cities.length + ' Stadtflächen angezeigt. '
+                        + '<button type="button" class="btn btn-xs btn-default" data-action="show-all-cities" data-region-id="' + escapeHtml(region.id) + '">Alle anzeigen</button>'
+                        + '</td>'
+                        + '</tr>';
+                }
 
                 var regionArea = region.cities.reduce(function (sum, city) {
                     return sum + Number(city.area_km2 || 0);
@@ -611,7 +887,12 @@
                     + '    <div class="row" style="margin-bottom:8px">'
                     + '      <div class="col-sm-4"><label>Name</label><input type="text" class="form-control" data-field="region-name" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.name || '') + '" placeholder="z. B. Kreis Dortmund"></div>'
                     + '      <div class="col-sm-3"><label>Schlüssel</label><input type="text" class="form-control" data-field="region-key" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.key || '') + '" placeholder="kreis-dortmund"></div>'
-                    + '      <div class="col-sm-2"><label>Farbe</label><input type="text" class="form-control" data-field="region-color" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.color || '#2f855a') + '" placeholder="#2f855a"></div>'
+                    + '      <div class="col-sm-2"><label>Farbe (überschreibt global)</label>'
+                    + '        <div style="display:flex;gap:4px;align-items:center">'
+                    + '          <input type="color" data-field="region-color-picker" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(/^#[0-9a-fA-F]{6}$/.test(region.color || '') ? region.color : '#2f855a') + '" style="width:34px;height:30px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">'
+                    + '          <input type="text" class="form-control" data-field="region-color" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.color || '') + '" placeholder="leer = global">'
+                    + '        </div>'
+                    + '      </div>'
                     + '      <div class="col-sm-3"><label>Komplette Region verlinken</label><input type="text" class="form-control" data-field="region-url" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.url || '') + '" placeholder="optional /region/kreis-1"></div>'
                     + '    </div>'
                     + '    <div class="row" style="margin-bottom:12px">'
@@ -619,14 +900,16 @@
                     + '    </div>'
                     + '    <div class="well well-sm" style="margin-bottom:10px">'
                     + '      <div class="row">'
-                    + '        <div class="col-sm-8"><label>Stadt suchen</label><input type="text" class="form-control" data-field="city-search" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.search || '') + '" placeholder="z. B. Dortmund"></div>'
-                    + '        <div class="col-sm-4"><label>Ländercodes</label><input type="text" class="form-control" data-field="countrycodes" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.countrycodes || 'de') + '" placeholder="de"></div>'
+                    + '        <div class="col-sm-6"><label>Stadt suchen</label><input type="text" class="form-control" data-field="city-search" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.search || '') + '" placeholder="z. B. Dortmund"></div>'
+                    + '        <div class="col-sm-3"><label>Ländercodes</label><input type="text" class="form-control" data-field="countrycodes" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.countrycodes || 'de') + '" placeholder="de"></div>'
+                    + '        <div class="col-sm-3"><label>&nbsp;</label><button type="button" class="btn btn-primary btn-block" data-action="search-city" data-region-id="' + escapeHtml(region.id) + '">Suche starten</button></div>'
                     + '      </div>'
+                    + '      <div class="text-muted" style="margin-top:6px;font-size:12px">Suche wird erst bei Bestätigung (Button oder Enter) ausgeführt.</div>'
                     + '      <div class="list-group" style="margin-top:10px;margin-bottom:0" data-search-results="' + escapeHtml(region.id) + '"></div>'
                     + '    </div>'
                     + '    <div class="table-responsive">'
                     + '      <table class="table table-condensed table-striped" style="margin-bottom:0">'
-                    + '        <thead><tr><th>Stadtfläche</th><th>Fläche</th><th>Link je Stadtgebiet</th><th>Info je Stadtgebiet</th><th></th></tr></thead>'
+                    + '        <thead><tr><th>Stadtfläche</th><th>Fläche</th><th>Aktiv</th><th>Link je Stadtgebiet</th><th>Info je Stadtgebiet</th><th></th></tr></thead>'
                     + '        <tbody>' + cityRows + '</tbody>'
                     + '      </table>'
                     + '    </div>'
@@ -663,12 +946,13 @@
             var query = String(region.search || '').trim();
             if (query.length < 2) {
                 region.searchResults = [];
-                renderRegions();
+                region.busy = false;
+                updateRegionSearchPanel(region);
                 return;
             }
 
             region.busy = true;
-            renderRegions();
+            updateRegionSearchPanel(region);
 
             var searchUrl = buildNominatimUrl('/search', {
                 format: 'jsonv2',
@@ -703,7 +987,7 @@
                 })
                 .finally(function () {
                     region.busy = false;
-                    renderRegions();
+                    updateRegionSearchPanel(region);
                 });
         }
 
@@ -764,7 +1048,10 @@
                     region.busy = false;
                     renderRegions();
                     sanitizeRegionKeys();
-                    syncOutputs();
+                    if (gatherStats(state).cityCount > 0) {
+                        enableLivePreview();
+                    }
+                    queueSync({ fit: true });
                 });
         }
 
@@ -773,23 +1060,52 @@
                 addRegionButton.addEventListener('click', function () {
                     state.regions.push(createEmptyRegion());
                     renderRegions();
-                    syncOutputs();
+                    queueSync();
+                });
+            }
+
+            if (mapContainer) {
+                mapContainer.addEventListener('click', function (event) {
+                    var target = event.target;
+                    if (!(target instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    var actionNode = target.closest('[data-action="enable-live-preview"]');
+                    if (!(actionNode instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    enableLivePreview();
+                    queueSync({ fit: true });
                 });
             }
 
             if (groupDescription) {
-                groupDescription.addEventListener('input', syncOutputs);
+                groupDescription.addEventListener('input', function () {
+                    queueSync();
+                });
             }
 
             if (groupKeyInput) {
-                groupKeyInput.addEventListener('input', syncOutputs);
+                groupKeyInput.addEventListener('input', function () {
+                    queueSync();
+                });
             }
 
             if (groupNameInput) {
-                groupNameInput.addEventListener('input', syncOutputs);
+                groupNameInput.addEventListener('input', function () {
+                    queueSync();
+                });
             }
 
-            var searchTimers = {};
+            if (form) {
+                form.addEventListener('submit', function () {
+                    state.description = groupDescription ? String(groupDescription.value || '') : '';
+                    sanitizeRegionKeys();
+                    writePayloadNow();
+                });
+            }
 
             regionList.addEventListener('input', function (event) {
                 var target = event.target;
@@ -808,27 +1124,34 @@
                     return;
                 }
 
+                var shouldSync = true;
+
                 if (field === 'region-name') {
                     region.name = target.value;
                 } else if (field === 'region-key') {
                     region.key = target.value;
                 } else if (field === 'region-color') {
+                    region.color = ensureCssColor(target.value, '');
+                    var pickerEl = regionList.querySelector('[data-field="region-color-picker"][data-region-id="' + region.id + '"]');
+                    if (pickerEl && /^#[0-9a-fA-F]{6}$/.test(region.color)) {
+                        pickerEl.value = region.color;
+                    }
+                } else if (field === 'region-color-picker') {
                     region.color = target.value;
+                    var textEl = regionList.querySelector('[data-field="region-color"][data-region-id="' + region.id + '"]');
+                    if (textEl) {
+                        textEl.value = target.value;
+                    }
                 } else if (field === 'region-url') {
                     region.url = target.value;
                 } else if (field === 'region-info') {
                     region.info = target.value;
                 } else if (field === 'countrycodes') {
                     region.countrycodes = target.value;
+                    shouldSync = false;
                 } else if (field === 'city-search') {
                     region.search = target.value;
-
-                    if (searchTimers[region.id]) {
-                        window.clearTimeout(searchTimers[region.id]);
-                    }
-                    searchTimers[region.id] = window.setTimeout(function () {
-                        searchCities(region);
-                    }, 320);
+                    shouldSync = false;
                 } else if (field === 'city-url' || field === 'city-info') {
                     var cityIndex = Number(target.getAttribute('data-city-index'));
                     if (!Number.isFinite(cityIndex) || cityIndex < 0 || cityIndex >= region.cities.length) {
@@ -842,8 +1165,42 @@
                     }
                 }
 
-                sanitizeRegionKeys();
-                syncOutputs();
+                if (shouldSync) {
+                    sanitizeRegionKeys();
+                    queueSync();
+                }
+            });
+
+            regionList.addEventListener('change', function (event) {
+                var target = event.target;
+                if (!(target instanceof HTMLElement)) {
+                    return;
+                }
+
+                if (target.getAttribute('data-field') !== 'city-active') {
+                    return;
+                }
+
+                var regionId = target.getAttribute('data-region-id') || '';
+                var region = findRegion(regionId);
+                if (!region) {
+                    return;
+                }
+
+                var cityIndex = Number(target.getAttribute('data-city-index'));
+                if (!Number.isFinite(cityIndex) || cityIndex < 0 || cityIndex >= region.cities.length) {
+                    return;
+                }
+
+                region.cities[cityIndex].active = target.checked;
+
+                var row = target.closest('tr');
+                if (row) {
+                    row.style.opacity = target.checked ? '' : '.65';
+                    row.classList.toggle('text-muted', !target.checked);
+                }
+
+                queueSync();
             });
 
             regionList.addEventListener('click', function (event) {
@@ -873,7 +1230,7 @@
                         return entry.id !== region.id;
                     });
                     renderRegions();
-                    syncOutputs();
+                    queueSync({ fit: true });
                     return;
                 }
 
@@ -882,8 +1239,19 @@
                     if (Number.isFinite(cityIndex) && cityIndex >= 0 && cityIndex < region.cities.length) {
                         region.cities.splice(cityIndex, 1);
                         renderRegions();
-                        syncOutputs();
+                        queueSync({ fit: true });
                     }
+                    return;
+                }
+
+                if (action === 'show-all-cities') {
+                    region.showAllCities = true;
+                    renderRegions();
+                    return;
+                }
+
+                if (action === 'search-city') {
+                    searchCities(region);
                     return;
                 }
 
@@ -894,18 +1262,54 @@
                     }
                 }
             });
+
+            regionList.addEventListener('keydown', function (event) {
+                var target = event.target;
+                if (!(target instanceof HTMLElement)) {
+                    return;
+                }
+
+                if (event.key !== 'Enter') {
+                    return;
+                }
+
+                var field = target.getAttribute('data-field');
+                if (field !== 'city-search') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                var regionId = target.getAttribute('data-region-id') || '';
+                var region = findRegion(regionId);
+                if (!region) {
+                    return;
+                }
+
+                region.search = target.value;
+                searchCities(region);
+            });
         }
 
-        initMap();
+        renderMapPlaceholder('Live-Preview startet automatisch, sobald Orte vorhanden sind. So bleibt die Seite auch bei großen Datensätzen sofort bedienbar.');
+        syncColorControlsFromState();
+        bindColorControls();
         bindEvents();
         renderRegions();
         sanitizeRegionKeys();
-        syncOutputs();
+        queueSync();
 
         if (state.regions.length === 0) {
             state.regions.push(createEmptyRegion());
             renderRegions();
-            syncOutputs();
+            queueSync();
+        }
+
+        if (gatherStats(state).cityCount > 0) {
+            window.setTimeout(function () {
+                enableLivePreview();
+                queueSync({ fit: true });
+            }, 60);
         }
     }
 
@@ -917,6 +1321,56 @@
 
         createBuilder(root);
     }
+
+    // Copy-Buttons (z. B. Einbindungscode in der Gruppenliste) – unabhängig vom Builder.
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        var button = target.closest('[data-vm-copy-text]');
+        if (!(button instanceof HTMLElement)) {
+            return;
+        }
+
+        var text = button.getAttribute('data-vm-copy-text') || '';
+
+        function showFeedback(ok) {
+            var original = button.innerHTML;
+            button.innerHTML = ok ? '<i class="rex-icon fa-check"></i>' : '<i class="rex-icon fa-times"></i>';
+            button.disabled = true;
+            window.setTimeout(function () {
+                button.innerHTML = original;
+                button.disabled = false;
+            }, 1200);
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+                showFeedback(true);
+            }, function () {
+                showFeedback(false);
+            });
+            return;
+        }
+
+        // Fallback für unsichere Kontexte
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        var ok = false;
+        try {
+            ok = document.execCommand('copy');
+        } catch (_err) {
+            ok = false;
+        }
+        document.body.removeChild(textarea);
+        showFeedback(ok);
+    });
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);

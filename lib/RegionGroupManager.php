@@ -29,6 +29,57 @@ final class RegionGroupManager
     }
 
     /**
+     * Erlaubt Hex (inkl. Alpha), rgb(a) und hsl(a). Leerer String bei ungültiger Eingabe.
+     */
+    private static function sanitizeCssColor(string $color, string $fallback = ''): string
+    {
+        $color = trim($color);
+
+        if (1 === preg_match('/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $color)) {
+            return $color;
+        }
+
+        if (1 === preg_match('/^(rgb|rgba|hsl|hsla)\(\s*[\d.,%\s\/-]+\)$/i', $color)) {
+            return $color;
+        }
+
+        return $fallback;
+    }
+
+    private static function clampOpacity(mixed $value, float $fallback): float
+    {
+        if (!is_numeric($value)) {
+            return $fallback;
+        }
+
+        return min(1.0, max(0.0, (float) $value));
+    }
+
+    /**
+     * @return array{active: string, inactive: string, active_opacity: float, inactive_opacity: float}
+     */
+    private static function normalizeColors(mixed $raw): array
+    {
+        $defaults = [
+            'active' => '#2f855a',
+            'inactive' => '#9ca3af',
+            'active_opacity' => 0.42,
+            'inactive_opacity' => 0.15,
+        ];
+
+        if (!is_array($raw)) {
+            return $defaults;
+        }
+
+        return [
+            'active' => self::sanitizeCssColor((string) ($raw['active'] ?? ''), $defaults['active']),
+            'inactive' => self::sanitizeCssColor((string) ($raw['inactive'] ?? ''), $defaults['inactive']),
+            'active_opacity' => self::clampOpacity($raw['active_opacity'] ?? null, $defaults['active_opacity']),
+            'inactive_opacity' => self::clampOpacity($raw['inactive_opacity'] ?? null, $defaults['inactive_opacity']),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public static function get(string $key): ?array
@@ -131,6 +182,7 @@ final class RegionGroupManager
     public static function normalizePayload(array $payload): array
     {
         $description = trim((string) ($payload['description'] ?? ''));
+        $colors = self::normalizeColors($payload['colors'] ?? null);
         $regionsRaw = $payload['regions'] ?? [];
 
         $regions = [];
@@ -159,10 +211,7 @@ final class RegionGroupManager
                 $regionName = $regionKey;
             }
 
-            $regionColor = trim((string) ($regionRaw['color'] ?? '#2f855a'));
-            if (1 !== preg_match('/^#(?:[0-9a-fA-F]{3}){1,2}$/', $regionColor)) {
-                $regionColor = '#2f855a';
-            }
+            $regionColor = self::sanitizeCssColor((string) ($regionRaw['color'] ?? ''));
 
             $regionUrl = trim((string) ($regionRaw['url'] ?? ''));
             if ('' !== $regionUrl && 1 !== preg_match('#^(https?://|/)#i', $regionUrl)) {
@@ -220,6 +269,7 @@ final class RegionGroupManager
                     'url' => $cityUrl,
                     'info' => $cityInfo,
                     'area_km2' => $cityArea,
+                    'active' => false !== ($cityRaw['active'] ?? true),
                 ];
 
                 ++$cityCount;
@@ -244,6 +294,7 @@ final class RegionGroupManager
 
         return [
             'description' => $description,
+            'colors' => $colors,
             'regions' => $regions,
             'city_count' => $cityCount,
             'area_total_km2' => round($areaTotal, 3),
@@ -257,6 +308,7 @@ final class RegionGroupManager
     public static function buildGeoJson(string $groupKey, string $groupName, array $payload): array
     {
         $features = [];
+        $colors = self::normalizeColors($payload['colors'] ?? null);
         $regions = $payload['regions'] ?? [];
 
         if (!is_array($regions)) {
@@ -270,7 +322,9 @@ final class RegionGroupManager
 
             $regionKey = (string) ($region['key'] ?? '');
             $regionName = (string) ($region['name'] ?? $regionKey);
-            $regionColor = (string) ($region['color'] ?? '#2f855a');
+            $regionColorOverride = self::sanitizeCssColor((string) ($region['color'] ?? ''));
+            $activeFill = '' !== $regionColorOverride ? $regionColorOverride : $colors['active'];
+            $inactiveFill = $colors['inactive'];
             $regionUrl = (string) ($region['url'] ?? '');
             $regionInfo = (string) ($region['info'] ?? '');
             $regionArea = (float) ($region['area_km2'] ?? 0);
@@ -293,6 +347,7 @@ final class RegionGroupManager
                 $cityUrl = (string) ($city['url'] ?? '');
                 $cityInfo = (string) ($city['info'] ?? '');
                 $cityArea = (float) ($city['area_km2'] ?? 0);
+                $cityActive = false !== ($city['active'] ?? true);
 
                 $features[] = [
                     'type' => 'Feature',
@@ -305,7 +360,9 @@ final class RegionGroupManager
                         'region_name' => $regionName,
                         'name' => $cityName,
                         'display_name' => $cityDisplayName,
-                        'fill' => $regionColor,
+                        'active' => $cityActive,
+                        'fill' => $cityActive ? $activeFill : $inactiveFill,
+                        'fill_opacity' => $cityActive ? $colors['active_opacity'] : $colors['inactive_opacity'],
                         'url' => $cityUrl,
                         'region_url' => $regionUrl,
                         'info' => $cityInfo,
@@ -345,7 +402,8 @@ final class RegionGroupManager
                     'region_key' => $regionKey,
                     'region_name' => $regionName,
                     'name' => $regionName,
-                    'fill' => $regionColor,
+                    'fill' => $activeFill,
+                    'fill_opacity' => round($colors['active_opacity'] * 0.45, 3),
                     'url' => $regionUrl,
                     'info' => $regionInfo,
                     'area_km2' => $regionArea,

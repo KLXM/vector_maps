@@ -3057,15 +3057,19 @@ function vmRenderGeoJson(el, map, data) {
     // $type gruppiert automatisch: 'Polygon' trifft auch MultiPolygon, etc.
     // fill- und circle-Layer brauchen keinen Filter (MapLibre ignoriert inkompatible Geometrien)
 
-    // Flächen (Polygon / MultiPolygon)
+    // Flächen (Polygon / MultiPolygon) — Feature-Properties (fill, fill_opacity)
+    // überschreiben die globalen Attribut-Werte (z. B. aus dem Regionen-Builder)
     map.addLayer({
         id: id + '-fill', type: 'fill', source: id,
-        paint: { 'fill-color': color, 'fill-opacity': opacity },
+        paint: {
+            'fill-color': ['coalesce', ['get', 'fill'], color],
+            'fill-opacity': ['coalesce', ['get', 'fill_opacity'], opacity],
+        },
     });
     map.addLayer({
         id: id + '-fill-outline', type: 'line', source: id,
         filter: ['==', '$type', 'Polygon'],
-        paint: { 'line-color': color, 'line-width': 2 },
+        paint: { 'line-color': ['coalesce', ['get', 'fill'], color], 'line-width': 2 },
     });
 
     // Linien (LineString / MultiLineString)

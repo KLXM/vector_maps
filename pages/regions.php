@@ -57,6 +57,14 @@ $currentDescription = is_array($editGroup) ? (string) ($editGroup['description']
 
 $initialPayload = [
     'description' => $currentDescription,
+    'colors' => is_array($editGroup) && isset($editGroup['payload']['colors']) && is_array($editGroup['payload']['colors'])
+        ? $editGroup['payload']['colors']
+        : [
+            'active' => '#2f855a',
+            'inactive' => '#9ca3af',
+            'active_opacity' => 0.42,
+            'inactive_opacity' => 0.15,
+        ],
     'regions' => is_array($editGroup) && isset($editGroup['payload']['regions']) && is_array($editGroup['payload']['regions'])
         ? $editGroup['payload']['regions']
         : [],
@@ -79,7 +87,12 @@ echo BackendHero::render(
     ]
 );
 
+$showForm = null !== $editGroup || 1 === rex_request('add', 'int', 0);
+
+if ($showForm) {
+
 $formHtml = '';
+$formHtml .= '<p><a class="btn btn-default" href="' . rex_url::currentBackendPage() . '"><i class="rex-icon fa-arrow-left"></i> Zurück zur Übersicht</a></p>';
 $formHtml .= '<form action="' . rex_url::currentBackendPage(array_merge(['func' => 'save'], $token->getUrlParams())) . '" method="post" id="vm-region-group-form">';
 $formHtml .= '<fieldset>';
 $formHtml .= '<legend>Gruppe</legend>';
@@ -103,6 +116,33 @@ $formHtml .= '<div class="rex-form-group form-group">';
 $formHtml .= '<label class="control-label col-sm-3" for="vm-group-description">Beschreibung</label>';
 $formHtml .= '<div class="col-sm-9">';
 $formHtml .= '<textarea class="form-control" id="vm-group-description" rows="3" placeholder="Optionaler Kontext für Redaktion und API"></textarea>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+
+$formHtml .= '<div class="rex-form-group form-group">';
+$formHtml .= '<label class="control-label col-sm-3">Globale Farben</label>';
+$formHtml .= '<div class="col-sm-9">';
+$formHtml .= '<div class="row">';
+$formHtml .= '<div class="col-sm-6" style="margin-bottom:8px">';
+$formHtml .= '<label style="font-weight:normal">Aktive Flächen</label>';
+$formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
+$formHtml .= '<input type="color" id="vm-color-active-picker" value="#2f855a" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
+$formHtml .= '<input type="text" class="form-control" id="vm-color-active" value="#2f855a" placeholder="#2f855a oder rgba(47,133,90,.8)">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-active" min="0" max="100" step="5" value="42" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<span class="text-muted">%</span>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '<div class="col-sm-6" style="margin-bottom:8px">';
+$formHtml .= '<label style="font-weight:normal">Inaktive Flächen</label>';
+$formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
+$formHtml .= '<input type="color" id="vm-color-inactive-picker" value="#9ca3af" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
+$formHtml .= '<input type="text" class="form-control" id="vm-color-inactive" value="#9ca3af" placeholder="#9ca3af oder rgba(156,163,175,.5)">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-inactive" min="0" max="100" step="5" value="15" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<span class="text-muted">%</span>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '<p class="help-block" style="margin-bottom:0">Picker oder freie Eingabe (Hex, rgba, hsl – auch transparent). Deckkraft in Prozent. Regionen können die Farbe einzeln überschreiben.</p>';
 $formHtml .= '</div>';
 $formHtml .= '</div>';
 
@@ -145,10 +185,12 @@ $formHtml .= '</form>';
 
 $formSection = new rex_fragment();
 $formSection->setVar('class', 'edit', false);
-$formSection->setVar('title', '<span class="vm-panel-title--soft"><i class="rex-icon fa-sitemap"></i>Gruppen- und Regionen-Konfiguration</span>', false);
+$formSection->setVar('title', '<span class="vm-panel-title--soft"><i class="rex-icon fa-sitemap"></i>' . ('' !== $currentKey ? 'Gruppe bearbeiten: ' . rex_escape($currentName !== '' ? $currentName : $currentKey) : 'Neue Gruppe anlegen') . '</span>', false);
 $formSection->setVar('body', $formHtml, false);
 
 echo $formSection->parse('core/page/section.php');
+
+} else {
 
 $rows = '';
 foreach ($allGroups as $group) {
@@ -167,9 +209,9 @@ foreach ($allGroups as $group) {
         'rex_api_vector_maps_regions' => 1,
         'action' => 'geojson',
         'key' => $key,
-    ]);
+    ], false);
 
-    $usage = '&lt;vectormap center="51.2,7.3" zoom="8" height="520" geojson="' . rex_escape($geojsonUrl) . '"&gt;&lt;/vectormap&gt;';
+    $usagePlain = '<vectormap center="51.2,7.3" zoom="8" height="520" geojson="' . $geojsonUrl . '"></vectormap>';
 
     $editUrl = rex_url::currentBackendPage(['edit' => $key]);
     $deleteUrl = rex_url::currentBackendPage(array_merge([
@@ -183,10 +225,15 @@ foreach ($allGroups as $group) {
     $rows .= '<td>' . $cityCount . '</td>';
     $rows .= '<td>' . number_format($area, 2, ',', '.') . ' km²</td>';
     $rows .= '<td>' . rex_escape($updated) . '</td>';
-    $rows .= '<td><code style="font-size:11px">' . $usage . '</code></td>';
+    $rows .= '<td style="max-width:260px">';
+    $rows .= '<div style="display:flex;gap:6px;align-items:flex-start">';
+    $rows .= '<code style="font-size:11px;white-space:normal;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1" title="' . rex_escape($usagePlain) . '">' . rex_escape($usagePlain) . '</code>';
+    $rows .= '<button type="button" class="btn btn-xs btn-default" data-vm-copy-text="' . rex_escape($usagePlain) . '" title="Einbindungscode kopieren"><i class="rex-icon fa-copy"></i></button>';
+    $rows .= '</div>';
+    $rows .= '</td>';
     $rows .= '<td style="white-space:nowrap">';
-    $rows .= '<a class="btn btn-xs btn-default" href="' . rex_escape($editUrl) . '"><i class="rex-icon rex-icon-edit"></i> Bearbeiten</a> ';
-    $rows .= '<a class="btn btn-xs btn-danger" href="' . rex_escape($deleteUrl) . '"><i class="rex-icon rex-icon-delete"></i> Löschen</a>';
+    $rows .= '<a class="btn btn-xs btn-default" href="' . $editUrl . '"><i class="rex-icon rex-icon-edit"></i> Bearbeiten</a> ';
+    $rows .= '<a class="btn btn-xs btn-danger" href="' . $deleteUrl . '"><i class="rex-icon rex-icon-delete"></i> Löschen</a>';
     $rows .= '</td>';
     $rows .= '</tr>';
 }
@@ -196,6 +243,7 @@ if ('' === $rows) {
 }
 
 $listHtml = '';
+$listHtml .= '<p><a class="btn btn-primary" href="' . rex_url::currentBackendPage(['add' => 1]) . '"><i class="rex-icon rex-icon-add-action"></i> Neue Gruppe anlegen</a></p>';
 $listHtml .= '<div class="table-responsive">';
 $listHtml .= '<table class="table table-striped">';
 $listHtml .= '<thead><tr><th>Gruppe</th><th>Regionen</th><th>Stadtflächen</th><th>Gesamtfläche</th><th>Aktualisiert</th><th>Einbindung</th><th>Aktionen</th></tr></thead>';
@@ -211,3 +259,5 @@ $listSection->setVar('title', '<span class="vm-panel-title--soft"><i class="rex-
 $listSection->setVar('body', $listHtml, false);
 
 echo $listSection->parse('core/page/section.php');
+
+}
