@@ -3082,8 +3082,13 @@ function vmRenderGeoJson(el, map, data) {
 
     // Punkte (Point / MultiPoint) → echte maplibregl.Marker-Pins (Simplestyle-kompatibel)
     // Unterstützte GeoJSON-Properties: marker-color, marker-symbol
+    const isLabelFeature = (feature) => {
+        const props = feature && feature.properties ? feature.properties : {};
+        return props.vm_label === true || props.vm_label === 1 || props.vm_label === '1';
+    };
+
     const pointFeatures = data.features.filter(
-        f => f.geometry && (f.geometry.type === 'Point' || f.geometry.type === 'MultiPoint')
+        f => f.geometry && (f.geometry.type === 'Point' || f.geometry.type === 'MultiPoint') && !isLabelFeature(f)
     );
     pointFeatures.forEach(f => {
         const props     = f.properties || {};
@@ -3137,6 +3142,38 @@ function vmRenderGeoJson(el, map, data) {
             }
             m.addTo(map);
         });
+    });
+
+    map.addLayer({
+        id: id + '-labels-bg',
+        type: 'circle',
+        source: id,
+        filter: ['all', ['==', '$type', 'Point'], ['any', ['==', ['get', 'vm_label'], true], ['==', ['get', 'vm_label'], 1], ['==', ['get', 'vm_label'], '1']], ['==', ['get', 'label_kind'], 'region']],
+        paint: {
+            'circle-radius': 16,
+            'circle-color': ['coalesce', ['get', 'label_bg'], '#111827'],
+            'circle-opacity': 0.92,
+        },
+    });
+
+    map.addLayer({
+        id: id + '-labels',
+        type: 'symbol',
+        source: id,
+        filter: ['all', ['==', '$type', 'Point'], ['any', ['==', ['get', 'vm_label'], true], ['==', ['get', 'vm_label'], 1], ['==', ['get', 'vm_label'], '1']]],
+        layout: {
+            'text-field': ['coalesce', ['get', 'label'], ['get', 'name'], ''],
+            'text-size': ['case', ['==', ['get', 'label_kind'], 'region'], 13, 11],
+            'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+        },
+        paint: {
+            'text-color': ['coalesce', ['get', 'label_color'], '#111827'],
+            'text-halo-color': '#ffffff',
+            'text-halo-width': ['case', ['==', ['get', 'label_kind'], 'region'], 0.2, 1.2],
+            'text-halo-blur': 0.4,
+        },
     });
 
     // Auto-Bounds: Karte auf alle GeoJSON-Features ausrichten (wenn kein fit-bounds="false")

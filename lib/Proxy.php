@@ -52,6 +52,12 @@ class Proxy
             'https://tiles.openfreemap.org/',
             // OSM Nominatim – Adresssuche im Picker
             'https://nominatim.openstreetmap.org/',
+            // Raw GitHub – statische Länder-Landflächen (GeoJSON)
+            'https://raw.githubusercontent.com/',
+            // GitHub raw-Redirects (u. a. aus geoBoundaries-Metadaten)
+            'https://github.com/',
+            // geoBoundaries API – liefert Download-Links für ADM0-Landflächen
+            'https://www.geoboundaries.org/',
             // OSRM – Open Source Routing Machine (driving/walking/cycling)
             'https://router.project-osrm.org/',
             // OSM-Routing-Server: Fahrrad- und Fußgänger-Profile (via OSRM)

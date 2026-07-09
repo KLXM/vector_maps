@@ -429,6 +429,13 @@ final class RegionGroupManager
             }
 
             $regionInfo = trim((string) ($regionRaw['info'] ?? ''));
+            $regionLabel = array_key_exists('label', $regionRaw)
+                ? trim((string) $regionRaw['label'])
+                : $regionName;
+            $regionCountrycodes = strtolower(trim((string) ($regionRaw['countrycodes'] ?? '')));
+            if ('' !== $regionCountrycodes) {
+                $regionCountrycodes = (string) preg_replace('/[^a-z,]+/', '', $regionCountrycodes);
+            }
 
             $citiesRaw = $regionRaw['cities'] ?? [];
             if (!is_array($citiesRaw)) {
@@ -468,6 +475,9 @@ final class RegionGroupManager
                 }
 
                 $cityInfo = trim((string) ($cityRaw['info'] ?? ''));
+                $cityLabel = array_key_exists('label', $cityRaw)
+                    ? trim((string) $cityRaw['label'])
+                    : $cityName;
 
                 $cityArea = (float) ($cityRaw['area_km2'] ?? 0);
                 if ($cityArea < 0) {
@@ -476,6 +486,7 @@ final class RegionGroupManager
 
                 $cities[] = [
                     'name' => $cityName,
+                    'label' => $cityLabel,
                     'display_name' => trim((string) ($cityRaw['display_name'] ?? $cityName)),
                     'osm_type' => strtoupper(trim((string) ($cityRaw['osm_type'] ?? ''))),
                     'osm_id' => (int) ($cityRaw['osm_id'] ?? 0),
@@ -498,9 +509,11 @@ final class RegionGroupManager
             $regions[] = [
                 'key' => $regionKey,
                 'name' => $regionName,
+                'label' => $regionLabel,
                 'color' => $regionColor,
                 'url' => $regionUrl,
                 'info' => $regionInfo,
+                'countrycodes' => $regionCountrycodes,
                 'area_km2' => round($regionArea, 3),
                 'cities' => $cities,
             ];
@@ -554,6 +567,58 @@ final class RegionGroupManager
     }
 
     /**
+     * @param array<string, mixed> $geometry
+     * @return array{0: float, 1: float}|null
+     */
+    private static function geometryCenter(array $geometry): ?array
+    {
+        $minLng = INF;
+        $minLat = INF;
+        $maxLng = -INF;
+        $maxLat = -INF;
+
+        $scan = static function ($coords) use (&$scan, &$minLng, &$minLat, &$maxLng, &$maxLat): void {
+            if (!is_array($coords)) {
+                return;
+            }
+
+            if (isset($coords[0], $coords[1]) && is_numeric($coords[0]) && is_numeric($coords[1])) {
+                $lng = (float) $coords[0];
+                $lat = (float) $coords[1];
+                if (!is_finite($lng) || !is_finite($lat)) {
+                    return;
+                }
+
+                if ($lng < $minLng) {
+                    $minLng = $lng;
+                }
+                if ($lat < $minLat) {
+                    $minLat = $lat;
+                }
+                if ($lng > $maxLng) {
+                    $maxLng = $lng;
+                }
+                if ($lat > $maxLat) {
+                    $maxLat = $lat;
+                }
+                return;
+            }
+
+            foreach ($coords as $child) {
+                $scan($child);
+            }
+        };
+
+        $scan($geometry['coordinates'] ?? null);
+
+        if (!is_finite($minLng) || !is_finite($minLat) || !is_finite($maxLng) || !is_finite($maxLat)) {
+            return null;
+        }
+
+        return [($minLng + $maxLng) / 2, ($minLat + $maxLat) / 2];
+    }
+
+    /**
      * @param array<string, mixed> $payload
      * @return array{type: string, features: array<int, array<string, mixed>>}
      */
@@ -574,6 +639,7 @@ final class RegionGroupManager
 
             $regionKey = (string) ($region['key'] ?? '');
             $regionName = (string) ($region['name'] ?? $regionKey);
+            $regionLabel = trim((string) ($region['label'] ?? $regionName));
             $regionColorOverride = self::sanitizeCssColor((string) ($region['color'] ?? ''));
             $activeFill = '' !== $regionColorOverride ? $regionColorOverride : $colors['active'];
             $inactiveFill = $colors['inactive'];
@@ -595,6 +661,7 @@ final class RegionGroupManager
 
                 $geometry = $city['geometry'];
                 $cityName = (string) ($city['name'] ?? 'Ort');
+                $cityLabel = trim((string) ($city['label'] ?? $cityName));
                 $cityDisplayName = (string) ($city['display_name'] ?? $cityName);
                 $cityUrl = (string) ($city['url'] ?? '');
                 $cityInfo = (string) ($city['info'] ?? '');
@@ -623,6 +690,30 @@ final class RegionGroupManager
                         'osm_id' => (int) ($city['osm_id'] ?? 0),
                     ],
                 ];
+
+                if ('' !== $cityLabel) {
+                    $cityCenter = self::geometryCenter($geometry);
+                    if (null !== $cityCenter) {
+                        $features[] = [
+                            'type' => 'Feature',
+                            'geometry' => [
+                                'type' => 'Point',
+                                'coordinates' => $cityCenter,
+                            ],
+                            'properties' => [
+                                'level' => 'label',
+                                'vm_label' => true,
+                                'label_kind' => 'city',
+                                'label' => $cityLabel,
+                                'label_color' => '#111827',
+                                'group_key' => $groupKey,
+                                'group_name' => $groupName,
+                                'region_key' => $regionKey,
+                                'region_name' => $regionName,
+                            ],
+                        ];
+                    }
+                }
 
                 if (($geometry['type'] ?? '') === 'Polygon' && isset($geometry['coordinates']) && is_array($geometry['coordinates'])) {
                     $allPolygons[] = $geometry['coordinates'];
@@ -662,6 +753,35 @@ final class RegionGroupManager
                     'city_count' => count($cities),
                 ],
             ];
+
+            if ('' !== $regionLabel) {
+                $regionCenter = self::geometryCenter([
+                    'type' => 'MultiPolygon',
+                    'coordinates' => $allPolygons,
+                ]);
+
+                if (null !== $regionCenter) {
+                    $features[] = [
+                        'type' => 'Feature',
+                        'geometry' => [
+                            'type' => 'Point',
+                            'coordinates' => $regionCenter,
+                        ],
+                        'properties' => [
+                            'level' => 'label',
+                            'vm_label' => true,
+                            'label_kind' => 'region',
+                            'label' => $regionLabel,
+                            'label_bg' => '#111827',
+                            'label_color' => '#ffffff',
+                            'group_key' => $groupKey,
+                            'group_name' => $groupName,
+                            'region_key' => $regionKey,
+                            'region_name' => $regionName,
+                        ],
+                    ];
+                }
+            }
         }
 
         return [

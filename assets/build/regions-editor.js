@@ -29,6 +29,10 @@
         return prefix + '-' + Math.random().toString(36).slice(2, 10);
     }
 
+    function hasOwn(obj, key) {
+        return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
+    }
+
     function normalizeOsmType(osmType) {
         var val = String(osmType || '').toLowerCase();
         if (val === 'relation' || val === 'r') return 'R';
@@ -195,6 +199,225 @@
         return url.toString();
     }
 
+    function buildCountryLandFallbackUrl(countryCode3) {
+        var code = String(countryCode3 || '').trim().toUpperCase();
+        if (!/^[A-Z]{3}$/.test(code)) {
+            return '';
+        }
+
+        return 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries/' + code + '.geo.json';
+    }
+
+    function buildGeoBoundariesMetaUrl(countryCode3) {
+        var code = String(countryCode3 || '').trim().toUpperCase();
+        if (!/^[A-Z]{3}$/.test(code)) {
+            return '';
+        }
+
+        return 'https://www.geoboundaries.org/api/current/gbOpen/' + code + '/ADM0/';
+    }
+
+    function extractPolygonGeometryFromGeoJson(raw) {
+        if (!raw || typeof raw !== 'object') {
+            return null;
+        }
+
+        if ((raw.type === 'Polygon' || raw.type === 'MultiPolygon') && Array.isArray(raw.coordinates)) {
+            return raw;
+        }
+
+        if (raw.type === 'Feature' && raw.geometry && (raw.geometry.type === 'Polygon' || raw.geometry.type === 'MultiPolygon')) {
+            return raw.geometry;
+        }
+
+        if (raw.type === 'FeatureCollection' && Array.isArray(raw.features)) {
+            for (var i = 0; i < raw.features.length; i += 1) {
+                var feature = raw.features[i];
+                if (feature && feature.geometry && (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon')) {
+                    return feature.geometry;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    function fetchNominatimLookupGeometry(proxyBase, searchItem) {
+        var lookupUrl = buildNominatimUrl('/lookup', {
+            format: 'jsonv2',
+            polygon_geojson: 1,
+            polygon_threshold: resolvePolygonThreshold(searchItem),
+            osm_ids: String(searchItem.osm_type) + String(searchItem.osm_id),
+        });
+
+        return fetch(buildProxyUrl(proxyBase, lookupUrl), { credentials: 'same-origin' })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var entry = Array.isArray(data) && data[0] ? data[0] : null;
+                if (!entry || !entry.geojson) {
+                    throw new Error('Keine GeoJSON-Antwort für die Stadtgrenze');
+                }
+
+                return {
+                    geometry: entry.geojson,
+                    entry: entry,
+                    source: 'nominatim',
+                };
+            });
+    }
+
+    function fetchCountryLandGeometry(proxyBase, searchItem) {
+        var countryCode3 = searchItem && searchItem.country_code3;
+        var metaUrl = buildGeoBoundariesMetaUrl(countryCode3);
+        var fallbackUrl = buildCountryLandFallbackUrl(countryCode3);
+        if (!metaUrl) {
+            throw new Error('Kein gültiger ISO3-Ländercode für Landflächen-Import');
+        }
+
+        function fetchGeoJsonGeometry(sourceUrl) {
+            if (!sourceUrl) {
+                return Promise.reject(new Error('Keine Landflächen-URL verfügbar'));
+            }
+
+            return fetch(buildProxyUrl(proxyBase, sourceUrl), { credentials: 'same-origin' })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Landflächen-Daten konnten nicht geladen werden');
+                    }
+                    return response.json();
+                })
+                .then(function (raw) {
+                    var geometry = extractPolygonGeometryFromGeoJson(raw);
+                    if (!geometry) {
+                        throw new Error('Landflächen-Daten enthalten keine Polygon-Geometrie');
+                    }
+
+                    return {
+                        geometry: geometry,
+                        entry: null,
+                        source: 'land',
+                    };
+                });
+        }
+
+        return fetch(buildProxyUrl(proxyBase, metaUrl), { credentials: 'same-origin' })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('geoBoundaries-Metadaten konnten nicht geladen werden');
+                }
+                return response.json();
+            })
+            .then(function (meta) {
+                var sourceUrl = String(meta && (meta.simplifiedGeometryGeoJSON || meta.gjDownloadURL) || '');
+                return fetchGeoJsonGeometry(sourceUrl);
+            })
+            .catch(function () {
+                // Robuster Fallback, falls geoBoundaries temporär nicht erreichbar ist.
+                return fetchGeoJsonGeometry(fallbackUrl);
+            });
+    }
+
+    function isCountryLikeResult(item) {
+        var addresstype = String(item && item.addresstype || '').toLowerCase();
+        var type = String(item && item.type || '').toLowerCase();
+        var placeRank = Number(item && item.place_rank || 0);
+        return addresstype === 'country' || type === 'country' || (placeRank > 0 && placeRank <= 6);
+    }
+
+    function countGeometryPoints(geometry) {
+        var count = 0;
+
+        function scan(coords) {
+            if (!Array.isArray(coords)) {
+                return;
+            }
+
+            if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+                count += 1;
+                return;
+            }
+
+            coords.forEach(scan);
+        }
+
+        if (!geometry || typeof geometry !== 'object') {
+            return 0;
+        }
+
+        scan(geometry.coordinates);
+        return count;
+    }
+
+    function resolvePolygonThreshold(searchItem) {
+        var addresstype = String(searchItem && searchItem.addresstype || '').toLowerCase();
+        var placeRank = Number(searchItem && searchItem.place_rank || 0);
+
+        // Gröbere Vereinfachung für große Flächen, feinere für Städte.
+        if (addresstype === 'country' || placeRank <= 6) {
+            return '0.05';
+        }
+        if (addresstype === 'state' || addresstype === 'province' || addresstype === 'region' || placeRank <= 10) {
+            return '0.012';
+        }
+        if (addresstype === 'county' || addresstype === 'district' || placeRank <= 14) {
+            return '0.004';
+        }
+
+        return '0.0015';
+    }
+
+    function simplifyRingToBudget(ring, step) {
+        if (!Array.isArray(ring) || ring.length < 8 || step <= 1) {
+            return ring;
+        }
+
+        var out = [];
+        var lastIndex = ring.length - 1;
+        var i;
+
+        out.push(ring[0]);
+        for (i = 1; i < lastIndex; i += step) {
+            out.push(ring[i]);
+        }
+        out.push(ring[lastIndex]);
+
+        if (out.length < 4) {
+            return ring;
+        }
+
+        return out;
+    }
+
+    function simplifyGeometryToPointBudget(geometry, maxPoints) {
+        var pointCount = countGeometryPoints(geometry);
+        if (pointCount <= maxPoints) {
+            return geometry;
+        }
+
+        var step = Math.ceil(pointCount / maxPoints);
+        var type = geometry && geometry.type;
+        if (type !== 'Polygon' && type !== 'MultiPolygon') {
+            return geometry;
+        }
+
+        var clone = JSON.parse(JSON.stringify(geometry));
+        if (type === 'Polygon') {
+            clone.coordinates = (clone.coordinates || []).map(function (ring) {
+                return simplifyRingToBudget(ring, step);
+            });
+        } else {
+            clone.coordinates = (clone.coordinates || []).map(function (polygon) {
+                return (polygon || []).map(function (ring) {
+                    return simplifyRingToBudget(ring, step);
+                });
+            });
+        }
+
+        return clone;
+    }
+
     function flattenGeometryPolygons(geometry) {
         if (!geometry || typeof geometry !== 'object') {
             return [];
@@ -213,11 +436,61 @@
         return [];
     }
 
+    function geometryCenter(geometry) {
+        var minLng = Infinity;
+        var minLat = Infinity;
+        var maxLng = -Infinity;
+        var maxLat = -Infinity;
+
+        function scan(coords) {
+            if (!Array.isArray(coords)) {
+                return;
+            }
+
+            if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+                var lng = Number(coords[0]);
+                var lat = Number(coords[1]);
+                if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+                    return;
+                }
+
+                if (lng < minLng) minLng = lng;
+                if (lat < minLat) minLat = lat;
+                if (lng > maxLng) maxLng = lng;
+                if (lat > maxLat) maxLat = lat;
+                return;
+            }
+
+            coords.forEach(scan);
+        }
+
+        if (!geometry || typeof geometry !== 'object') {
+            return null;
+        }
+
+        scan(geometry.coordinates);
+
+        if (!Number.isFinite(minLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLng) || !Number.isFinite(maxLat)) {
+            return null;
+        }
+
+        return [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+    }
+
+    function regionLabelCenterFromPolygons(regionPolygons) {
+        if (!Array.isArray(regionPolygons) || !regionPolygons.length) {
+            return null;
+        }
+
+        return geometryCenter({ type: 'MultiPolygon', coordinates: regionPolygons });
+    }
+
     function createEmptyRegion() {
         return {
             id: uid('region'),
             key: '',
             name: '',
+            label: '',
             color: '',
             url: '',
             info: '',
@@ -244,10 +517,11 @@
             region.id = String(regionRaw.id || uid('region'));
             region.key = String(regionRaw.key || '');
             region.name = String(regionRaw.name || '');
+            region.label = hasOwn(regionRaw, 'label') ? String(regionRaw.label || '') : String(regionRaw.name || '');
             region.color = ensureCssColor(regionRaw.color, '');
             region.url = String(regionRaw.url || '');
             region.info = String(regionRaw.info || '');
-            region.countrycodes = String(regionRaw.countrycodes || 'de');
+            region.countrycodes = String(regionRaw.countrycodes || '');
             region.showAllCities = !!regionRaw.showAllCities;
             region.cities = Array.isArray(regionRaw.cities) ? regionRaw.cities.map(function (cityRaw) {
                 var geometry = cityRaw && cityRaw.geometry && typeof cityRaw.geometry === 'object'
@@ -256,6 +530,7 @@
                 return {
                     id: String(cityRaw.id || uid('city')),
                     name: String(cityRaw.name || ''),
+                    label: hasOwn(cityRaw, 'label') ? String(cityRaw.label || '') : String(cityRaw.name || ''),
                     display_name: String(cityRaw.display_name || cityRaw.name || ''),
                     osm_type: normalizeOsmType(cityRaw.osm_type || ''),
                     osm_id: Number(cityRaw.osm_id || 0),
@@ -284,13 +559,15 @@
                 return {
                     key: String(region.key || ''),
                     name: String(region.name || ''),
+                    label: String(region.label || ''),
                     color: ensureCssColor(region.color, ''),
                     url: String(region.url || ''),
                     info: String(region.info || ''),
-                    countrycodes: String(region.countrycodes || 'de'),
+                    countrycodes: String(region.countrycodes || ''),
                     cities: region.cities.map(function (city) {
                         return {
                             name: city.name,
+                            label: String(city.label || ''),
                             display_name: city.display_name,
                             osm_type: city.osm_type,
                             osm_id: city.osm_id,
@@ -367,6 +644,7 @@
         var fitBoundsToken = 0;
         var mapEnabled = false;
         var mapReady = false;
+        var labelMarkers = [];
         var mapContainer = $('#vm-builder-map');
         var latestPreviewGeojson = { type: 'FeatureCollection', features: [] };
         var dataLoadedFromApi = false;
@@ -579,6 +857,38 @@
                     },
                 });
 
+                map.addLayer({
+                    id: 'vm-label-region-bg',
+                    type: 'circle',
+                    source: sourceId,
+                    filter: ['all', ['==', '$type', 'Point'], ['==', ['get', 'vm_label'], true], ['==', ['get', 'label_kind'], 'region']],
+                    paint: {
+                        'circle-radius': 16,
+                        'circle-color': ['coalesce', ['get', 'label_bg'], '#111827'],
+                        'circle-opacity': 0.92,
+                    },
+                });
+
+                map.addLayer({
+                    id: 'vm-labels',
+                    type: 'symbol',
+                    source: sourceId,
+                    filter: ['all', ['==', '$type', 'Point'], ['==', ['get', 'vm_label'], true]],
+                    layout: {
+                        'text-field': ['coalesce', ['get', 'label'], ['get', 'name'], ''],
+                        'text-size': ['case', ['==', ['get', 'label_kind'], 'region'], 13, 11],
+                        'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                    },
+                    paint: {
+                        'text-color': ['coalesce', ['get', 'label_color'], '#111827'],
+                        'text-halo-color': '#ffffff',
+                        'text-halo-width': ['case', ['==', ['get', 'label_kind'], 'region'], 0.2, 1.2],
+                        'text-halo-blur': 0.4,
+                    },
+                });
+
                 var clickHandler = function (event) {
                     var features = map.queryRenderedFeatures(event.point, {
                         layers: ['vm-city-fill', 'vm-region-fill'],
@@ -691,6 +1001,7 @@
             var source = map.getSource(sourceId);
             if (source) {
                 source.setData(geojson);
+                renderLabelMarkers(geojson);
                 if (shouldFitBounds) {
                     var token = ++fitBoundsToken;
                     window.setTimeout(function () {
@@ -701,6 +1012,82 @@
                     }, 0);
                 }
             }
+        }
+
+        function clearLabelMarkers() {
+            labelMarkers.forEach(function (marker) {
+                try {
+                    marker.remove();
+                } catch (_err) {
+                    // ignore
+                }
+            });
+            labelMarkers = [];
+        }
+
+        function renderLabelMarkers(geojson) {
+            clearLabelMarkers();
+
+            if (!map || !mapReady || !geojson || !Array.isArray(geojson.features)) {
+                return;
+            }
+
+            var labelFeatures = geojson.features.filter(function (feature) {
+                if (!feature || !feature.geometry || feature.geometry.type !== 'Point') {
+                    return false;
+                }
+
+                var props = feature.properties || {};
+                if (props.vm_label !== true && props.vm_label !== 1 && props.vm_label !== '1') {
+                    return false;
+                }
+
+                var text = String(props.label || '').trim();
+                return text !== '';
+            });
+
+            // Sicherheitsbremse gegen UI-Freeze bei sehr vielen Labels
+            if (labelFeatures.length > 120) {
+                labelFeatures = labelFeatures.slice(0, 120);
+            }
+
+            labelFeatures.forEach(function (feature) {
+                var props = feature.properties || {};
+                var coords = feature.geometry.coordinates;
+                if (!Array.isArray(coords) || coords.length < 2) {
+                    return;
+                }
+
+                var isRegion = String(props.label_kind || '') === 'region';
+                var el = document.createElement('div');
+                el.className = 'vm-dom-label';
+                el.textContent = String(props.label || '').trim();
+                el.style.pointerEvents = 'none';
+                el.style.whiteSpace = 'nowrap';
+                el.style.transform = 'translate(-50%, -50%)';
+                el.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+                el.style.fontSize = isRegion ? '13px' : '11px';
+                el.style.fontWeight = isRegion ? '700' : '600';
+                el.style.padding = isRegion ? '4px 8px' : '2px 6px';
+                el.style.borderRadius = isRegion ? '999px' : '8px';
+                el.style.boxShadow = isRegion ? '0 1px 4px rgba(0,0,0,.35)' : '0 1px 2px rgba(0,0,0,.2)';
+
+                if (isRegion) {
+                    el.style.background = ensureCssColor(props.label_bg, '#111827');
+                    el.style.color = ensureCssColor(props.label_color, '#ffffff');
+                    el.style.border = '1px solid rgba(255,255,255,.28)';
+                } else {
+                    el.style.background = 'rgba(255,255,255,.9)';
+                    el.style.color = ensureCssColor(props.label_color, '#111827');
+                    el.style.border = '1px solid rgba(17,24,39,.2)';
+                }
+
+                var marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+                    .setLngLat([Number(coords[0]), Number(coords[1])])
+                    .addTo(map);
+
+                labelMarkers.push(marker);
+            });
         }
 
         function renderLoadingState(message) {
@@ -787,6 +1174,7 @@
 
                 var regionKey = String(region.key || '').trim() || region.id;
                 var regionName = String(region.name || '').trim() || regionKey;
+                var regionLabel = String(region.label || '').trim();
                 var activeFill = ensureCssColor(region.color, '') || colors.active;
                 var inactiveFill = colors.inactive;
                 var regionUrl = String(region.url || '').trim();
@@ -807,6 +1195,7 @@
 
                     var cityActive = city.active !== false;
                     var cityArea = Number(city.area_km2 || 0);
+                    var cityLabel = String(city.label || '').trim();
                     regionArea += cityArea;
                     regionCityCount += 1;
                     cityFeatureCount += 1;
@@ -833,6 +1222,30 @@
                             osm_id: city.osm_id,
                         },
                     });
+
+                    if (cityLabel) {
+                        var cityCenter = geometryCenter(city.geometry);
+                        if (cityCenter) {
+                            features.push({
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: cityCenter,
+                                },
+                                properties: {
+                                    level: 'label',
+                                    vm_label: true,
+                                    label_kind: 'city',
+                                    label: cityLabel,
+                                    label_color: '#111827',
+                                    group_key: groupKey,
+                                    group_name: groupName,
+                                    region_key: regionKey,
+                                    region_name: regionName,
+                                },
+                            });
+                        }
+                    }
 
                     flattenGeometryPolygons(city.geometry).forEach(function (polygon) {
                         regionPolygons.push(polygon);
@@ -861,6 +1274,31 @@
                             city_count: regionCityCount,
                         },
                     });
+
+                    if (regionLabel) {
+                        var regionCenter = regionLabelCenterFromPolygons(regionPolygons);
+                        if (regionCenter) {
+                            features.push({
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'Point',
+                                    coordinates: regionCenter,
+                                },
+                                properties: {
+                                    level: 'label',
+                                    vm_label: true,
+                                    label_kind: 'region',
+                                    label: regionLabel,
+                                    label_bg: '#111827',
+                                    label_color: '#ffffff',
+                                    group_key: groupKey,
+                                    group_name: groupName,
+                                    region_key: regionKey,
+                                    region_name: regionName,
+                                },
+                            });
+                        }
+                    }
                 }
             });
 
@@ -955,7 +1393,8 @@
             }
 
             target.innerHTML = region.searchResults.map(function (item, index) {
-                var subtitle = [item.type || '', item.class || ''].filter(Boolean).join(' · ');
+                var subtitle = [item.addresstype || '', item.type || '', item.class || ''].filter(Boolean).join(' · ');
+                var isLargeArea = !!item.isLargeArea;
                 return ''
                     + '<div class="list-group-item">'
                     + '  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">'
@@ -963,6 +1402,7 @@
                     + '      <strong>' + escapeHtml(item.name || item.display_name || 'Ort') + '</strong><br>'
                     + '      <small class="text-muted">' + escapeHtml(item.display_name || '') + '</small>'
                     + (subtitle ? '<br><small class="text-muted">' + escapeHtml(subtitle) + '</small>' : '')
+                    + (isLargeArea ? '<br><small class="text-warning">Große Fläche: wird beim Import automatisch stark vereinfacht.</small>' : '')
                     + '    </div>'
                     + '    <button type="button" class="btn btn-xs btn-primary" data-action="add-city" data-region-id="' + escapeHtml(region.id) + '" data-result-index="' + index + '">Stadtgrenze hinzufügen</button>'
                     + '  </div>'
@@ -996,6 +1436,7 @@
                         return ''
                             + '<tr' + (city.active === false ? ' class="text-muted" style="opacity:.65"' : '') + '>'
                             + '<td><strong>' + escapeHtml(city.name) + '</strong><br><small class="text-muted">' + escapeHtml(city.display_name || '') + '</small></td>'
+                            + '<td><input type="text" class="form-control input-sm" data-field="city-label" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '" value="' + escapeHtml(city.label || '') + '" placeholder="leer = kein Label"></td>'
                             + '<td>' + Number(city.area_km2 || 0).toFixed(2) + ' km²</td>'
                             + '<td style="text-align:center"><input type="checkbox" data-field="city-active" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '"' + (city.active !== false ? ' checked' : '') + ' title="Stadtfläche aktiv/inaktiv"></td>'
                             + '<td><input type="text" class="form-control input-sm" data-field="city-url" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '" value="' + escapeHtml(city.url || '') + '" placeholder="Optionaler Link je Stadtgebiet"></td>'
@@ -1003,12 +1444,12 @@
                             + '<td style="width:1%"><button type="button" class="btn btn-xs btn-danger" data-action="remove-city" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '">Entfernen</button></td>'
                             + '</tr>';
                     }).join('')
-                    : '<tr><td colspan="6" class="text-muted">Noch keine Stadtgrenze hinzugefügt.</td></tr>';
+                    : '<tr><td colspan="7" class="text-muted">Noch keine Stadtgrenze hinzugefügt.</td></tr>';
 
                 if (!region.showAllCities && region.cities.length > MAX_VISIBLE_CITY_ROWS) {
                     cityRows += ''
                         + '<tr>'
-                        + '<td colspan="6" class="text-muted">'
+                        + '<td colspan="7" class="text-muted">'
                         + 'Zur Performance werden ' + MAX_VISIBLE_CITY_ROWS + ' von ' + region.cities.length + ' Stadtflächen angezeigt. '
                         + '<button type="button" class="btn btn-xs btn-default" data-action="show-all-cities" data-region-id="' + escapeHtml(region.id) + '">Alle anzeigen</button>'
                         + '</td>'
@@ -1028,7 +1469,8 @@
                     + '  </div>'
                     + '  <div class="panel-body">'
                     + '    <div class="row" style="margin-bottom:8px">'
-                    + '      <div class="col-sm-4"><label>Name</label><input type="text" class="form-control" data-field="region-name" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.name || '') + '" placeholder="z. B. Kreis Dortmund"></div>'
+                    + '      <div class="col-sm-3"><label>Name</label><input type="text" class="form-control" data-field="region-name" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.name || '') + '" placeholder="z. B. Kreis Dortmund"></div>'
+                    + '      <div class="col-sm-2"><label>Region-Label</label><input type="text" class="form-control" data-field="region-label" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.label || '') + '" placeholder="leer = kein Label"></div>'
                     + '      <div class="col-sm-3"><label>Schlüssel</label><input type="text" class="form-control" data-field="region-key" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.key || '') + '" placeholder="kreis-dortmund"></div>'
                     + '      <div class="col-sm-2"><label>Farbe (überschreibt global)</label>'
                     + '        <div style="display:flex;gap:4px;align-items:center">'
@@ -1044,7 +1486,7 @@
                     + '    <div class="well well-sm" style="margin-bottom:10px">'
                     + '      <div class="row">'
                     + '        <div class="col-sm-6"><label>Stadt suchen</label><input type="text" class="form-control" data-field="city-search" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.search || '') + '" placeholder="z. B. Dortmund"></div>'
-                    + '        <div class="col-sm-3"><label>Ländercodes</label><input type="text" class="form-control" data-field="countrycodes" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.countrycodes || 'de') + '" placeholder="de"></div>'
+                    + '        <div class="col-sm-3"><label>Ländercodes</label><input type="text" class="form-control" data-field="countrycodes" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.countrycodes || '') + '" placeholder="z. B. de oder leer = global"></div>'
                     + '        <div class="col-sm-3"><label>&nbsp;</label><button type="button" class="btn btn-primary btn-block" data-action="search-city" data-region-id="' + escapeHtml(region.id) + '">Suche starten</button></div>'
                     + '      </div>'
                     + '      <div class="text-muted" style="margin-top:6px;font-size:12px">Suche wird erst bei Bestätigung (Button oder Enter) ausgeführt.</div>'
@@ -1052,7 +1494,7 @@
                     + '    </div>'
                     + '    <div class="table-responsive">'
                     + '      <table class="table table-condensed table-striped" style="margin-bottom:0">'
-                    + '        <thead><tr><th>Stadtfläche</th><th>Fläche</th><th>Aktiv</th><th>Link je Stadtgebiet</th><th>Info je Stadtgebiet</th><th></th></tr></thead>'
+                    + '        <thead><tr><th>Stadtfläche</th><th>Label</th><th>Fläche</th><th>Aktiv</th><th>Link je Stadtgebiet</th><th>Info je Stadtgebiet</th><th></th></tr></thead>'
                     + '        <tbody>' + cityRows + '</tbody>'
                     + '      </table>'
                     + '    </div>'
@@ -1100,9 +1542,10 @@
             var searchUrl = buildNominatimUrl('/search', {
                 format: 'jsonv2',
                 addressdetails: 1,
+                extratags: 1,
                 limit: 8,
                 q: query,
-                countrycodes: String(region.countrycodes || 'de').trim(),
+                countrycodes: String(region.countrycodes || '').trim(),
             });
 
             fetch(buildProxyUrl(proxyBase, searchUrl), { credentials: 'same-origin' })
@@ -1112,14 +1555,23 @@
                 .then(function (data) {
                     var items = Array.isArray(data) ? data : [];
                     region.searchResults = items.map(function (entry) {
-                        return {
+                        var address = entry && entry.address && typeof entry.address === 'object' ? entry.address : {};
+                        var extratags = entry && entry.extratags && typeof entry.extratags === 'object' ? entry.extratags : {};
+                        var candidate = {
                             name: String(entry.name || entry.display_name || 'Ort'),
                             display_name: String(entry.display_name || ''),
                             type: String(entry.type || ''),
                             class: String(entry.class || entry.category || ''),
+                            addresstype: String(entry.addresstype || ''),
+                            place_rank: Number(entry.place_rank || 0),
                             osm_type: normalizeOsmType(entry.osm_type || ''),
                             osm_id: Number(entry.osm_id || 0),
+                            country_code: String(entry.country_code || address.country_code || '').trim().toUpperCase(),
+                            country_code3: String(extratags['ISO3166-1:alpha3'] || '').trim().toUpperCase(),
                         };
+
+                        candidate.isLargeArea = isCountryLikeResult(candidate);
+                        return candidate;
                     }).filter(function (entry) {
                         return !!entry.osm_type && entry.osm_id > 0;
                     });
@@ -1142,25 +1594,29 @@
             region.busy = true;
             renderRegions();
 
-            var lookupUrl = buildNominatimUrl('/lookup', {
-                format: 'jsonv2',
-                polygon_geojson: 1,
-                osm_ids: String(searchItem.osm_type) + String(searchItem.osm_id),
-            });
+            var useLandSource = !!searchItem.isLargeArea && /^[A-Z]{3}$/.test(String(searchItem.country_code3 || '').trim().toUpperCase());
+            var geometryPromise = useLandSource
+                ? fetchCountryLandGeometry(proxyBase, searchItem)
+                : fetchNominatimLookupGeometry(proxyBase, searchItem);
 
-            fetch(buildProxyUrl(proxyBase, lookupUrl), { credentials: 'same-origin' })
-                .then(function (response) {
-                    return response.json();
-                })
-                .then(function (data) {
-                    var entry = Array.isArray(data) && data[0] ? data[0] : null;
-                    if (!entry || !entry.geojson) {
-                        throw new Error('Keine GeoJSON-Antwort für die Stadtgrenze');
-                    }
-
-                    var geometry = entry.geojson;
+            geometryPromise
+                .then(function (result) {
+                    var entry = result.entry;
+                    var geometry = result.geometry;
                     if (!geometry || (geometry.type !== 'Polygon' && geometry.type !== 'MultiPolygon')) {
                         throw new Error('Gefundener Ort hat keine Polygon-Geometrie');
+                    }
+
+                    var geometryPointCount = countGeometryPoints(geometry);
+                    var maxPoints = searchItem.isLargeArea ? 14000 : 38000;
+                    if (geometryPointCount > maxPoints) {
+                        geometry = simplifyGeometryToPointBudget(geometry, maxPoints);
+                        geometryPointCount = countGeometryPoints(geometry);
+                    }
+
+                    if (geometryPointCount > 90000) {
+                        window.alert('Die ausgewählte Fläche ist selbst nach Reduktion noch zu groß (' + geometryPointCount + ' Punkte). Bitte kleinere Ebene wählen.');
+                        return;
                     }
 
                     var alreadyExists = region.cities.some(function (city) {
@@ -1171,10 +1627,13 @@
                     }
 
                     var areaSqm = geometryAreaSqm(geometry);
+                    var fallbackName = String(searchItem.name || (entry && entry.name) || 'Ort');
+                    var fallbackDisplayName = String(searchItem.display_name || (entry && entry.display_name) || fallbackName);
                     region.cities.push({
                         id: uid('city'),
-                        name: String(searchItem.name || entry.name || 'Ort'),
-                        display_name: String(searchItem.display_name || entry.display_name || ''),
+                        name: fallbackName,
+                        label: fallbackName,
+                        display_name: fallbackDisplayName,
                         osm_type: searchItem.osm_type,
                         osm_id: searchItem.osm_id,
                         geometry: geometry,
@@ -1271,6 +1730,8 @@
 
                 if (field === 'region-name') {
                     region.name = target.value;
+                } else if (field === 'region-label') {
+                    region.label = target.value;
                 } else if (field === 'region-key') {
                     region.key = target.value;
                 } else if (field === 'region-color') {
@@ -1295,7 +1756,7 @@
                 } else if (field === 'city-search') {
                     region.search = target.value;
                     shouldSync = false;
-                } else if (field === 'city-url' || field === 'city-info') {
+                } else if (field === 'city-url' || field === 'city-info' || field === 'city-label') {
                     var cityIndex = Number(target.getAttribute('data-city-index'));
                     if (!Number.isFinite(cityIndex) || cityIndex < 0 || cityIndex >= region.cities.length) {
                         return;
@@ -1303,6 +1764,8 @@
 
                     if (field === 'city-url') {
                         region.cities[cityIndex].url = target.value;
+                    } else if (field === 'city-label') {
+                        region.cities[cityIndex].label = target.value;
                     } else {
                         region.cities[cityIndex].info = target.value;
                     }
