@@ -139,7 +139,46 @@
             inactive: '#9ca3af',
             active_opacity: 0.42,
             inactive_opacity: 0.15,
+            levels: {
+                country: '#0f766e',
+                state: '#2563eb',
+                county: '#f59e0b',
+                city: '#2f855a',
+            },
+            levels_opacity: {
+                country: 0.42,
+                state: 0.42,
+                county: 0.42,
+                city: 0.42,
+            },
         };
+    }
+
+    function normalizeBoundaryLevel(value) {
+        var level = String(value || '').toLowerCase().trim();
+        if (level === 'country' || level === 'state' || level === 'county' || level === 'city') {
+            return level;
+        }
+
+        return 'city';
+    }
+
+    function detectBoundaryLevelFromSearchItem(item) {
+        var addresstype = String(item && item.addresstype || '').toLowerCase();
+        var type = String(item && item.type || '').toLowerCase();
+        var placeRank = Number(item && item.place_rank || 0);
+
+        if (addresstype === 'country' || type === 'country' || (placeRank > 0 && placeRank <= 6)) {
+            return 'country';
+        }
+        if (addresstype === 'state' || addresstype === 'province' || addresstype === 'region' || placeRank <= 10) {
+            return 'state';
+        }
+        if (addresstype === 'county' || addresstype === 'district' || addresstype === 'municipality' || placeRank <= 14) {
+            return 'county';
+        }
+
+        return 'city';
     }
 
     function defaultOptimize() {
@@ -174,11 +213,26 @@
             return defaults;
         }
 
+        var rawLevels = raw.levels && typeof raw.levels === 'object' ? raw.levels : {};
+        var rawLevelsOpacity = raw.levels_opacity && typeof raw.levels_opacity === 'object' ? raw.levels_opacity : {};
+
         return {
             active: ensureCssColor(raw.active, defaults.active),
             inactive: ensureCssColor(raw.inactive, defaults.inactive),
             active_opacity: clampOpacity(raw.active_opacity, defaults.active_opacity),
             inactive_opacity: clampOpacity(raw.inactive_opacity, defaults.inactive_opacity),
+            levels: {
+                country: ensureCssColor(rawLevels.country, defaults.levels.country),
+                state: ensureCssColor(rawLevels.state, defaults.levels.state),
+                county: ensureCssColor(rawLevels.county, defaults.levels.county),
+                city: ensureCssColor(rawLevels.city, defaults.levels.city),
+            },
+            levels_opacity: {
+                country: clampOpacity(rawLevelsOpacity.country, defaults.levels_opacity.country),
+                state: clampOpacity(rawLevelsOpacity.state, defaults.levels_opacity.state),
+                county: clampOpacity(rawLevelsOpacity.county, defaults.levels_opacity.county),
+                city: clampOpacity(rawLevelsOpacity.city, defaults.levels_opacity.city),
+            },
         };
     }
 
@@ -532,6 +586,7 @@
                     name: String(cityRaw.name || ''),
                     label: hasOwn(cityRaw, 'label') ? String(cityRaw.label || '') : String(cityRaw.name || ''),
                     display_name: String(cityRaw.display_name || cityRaw.name || ''),
+                    boundary_level: normalizeBoundaryLevel(cityRaw.boundary_level),
                     osm_type: normalizeOsmType(cityRaw.osm_type || ''),
                     osm_id: Number(cityRaw.osm_id || 0),
                     geometry: geometry,
@@ -569,6 +624,7 @@
                             name: city.name,
                             label: String(city.label || ''),
                             display_name: city.display_name,
+                            boundary_level: normalizeBoundaryLevel(city.boundary_level),
                             osm_type: city.osm_type,
                             osm_id: city.osm_id,
                             geometry: city.geometry,
@@ -602,6 +658,86 @@
         };
     }
 
+    function ensureLevelColorControlsInDom() {
+        if (document.getElementById('vm-color-country')) {
+            return;
+        }
+
+        var activeInput = document.getElementById('vm-color-active');
+        if (!activeInput) {
+            return;
+        }
+
+        var container = activeInput.closest('.col-sm-9');
+        if (!container) {
+            return;
+        }
+
+        var row = document.createElement('div');
+        row.className = 'row';
+        row.style.marginTop = '10px';
+        row.innerHTML = ''
+            + '<div class="col-sm-3" style="margin-bottom:8px">'
+            + '  <label style="font-weight:normal">Default</label>'
+            + '  <div style="display:flex;gap:6px;align-items:center">'
+            + '    <input type="color" id="vm-color-country-picker" value="#0f766e" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">'
+            + '    <input type="text" class="form-control" id="vm-color-country" value="#0f766e" placeholder="#0f766e">'
+            + '    <input type="number" class="form-control" id="vm-opacity-country" min="0" max="100" step="1" value="42" style="width:74px" title="Deckkraft in %">'
+            + '    <span class="text-muted">%</span>'
+            + '  </div>'
+            + '</div>'
+            + '<div class="col-sm-3" style="margin-bottom:8px">'
+            + '  <label style="font-weight:normal">Primär</label>'
+            + '  <div style="display:flex;gap:6px;align-items:center">'
+            + '    <input type="color" id="vm-color-state-picker" value="#2563eb" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">'
+            + '    <input type="text" class="form-control" id="vm-color-state" value="#2563eb" placeholder="#2563eb">'
+            + '    <input type="number" class="form-control" id="vm-opacity-state" min="0" max="100" step="1" value="42" style="width:74px" title="Deckkraft in %">'
+            + '    <span class="text-muted">%</span>'
+            + '  </div>'
+            + '</div>'
+            + '<div class="col-sm-3" style="margin-bottom:8px">'
+            + '  <label style="font-weight:normal">Sekundär</label>'
+            + '  <div style="display:flex;gap:6px;align-items:center">'
+            + '    <input type="color" id="vm-color-county-picker" value="#f59e0b" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">'
+            + '    <input type="text" class="form-control" id="vm-color-county" value="#f59e0b" placeholder="#f59e0b">'
+            + '    <input type="number" class="form-control" id="vm-opacity-county" min="0" max="100" step="1" value="42" style="width:74px" title="Deckkraft in %">'
+            + '    <span class="text-muted">%</span>'
+            + '  </div>'
+            + '</div>'
+            + '<div class="col-sm-3" style="margin-bottom:8px">'
+            + '  <label style="font-weight:normal">Tertiär</label>'
+            + '  <div style="display:flex;gap:6px;align-items:center">'
+            + '    <input type="color" id="vm-color-city-picker" value="#2f855a" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">'
+            + '    <input type="text" class="form-control" id="vm-color-city" value="#2f855a" placeholder="#2f855a">'
+            + '    <input type="number" class="form-control" id="vm-opacity-city" min="0" max="100" step="1" value="42" style="width:74px" title="Deckkraft in %">'
+            + '    <span class="text-muted">%</span>'
+            + '  </div>'
+            + '</div>';
+
+        var help = container.querySelector('.help-block');
+        if (help && help.parentNode) {
+            help.parentNode.insertBefore(row, help);
+        } else {
+            container.appendChild(row);
+        }
+    }
+
+    function normalizeLevelColorLabelsInDom() {
+        var map = {
+            'Staat/Land': 'Default',
+            'Bundesland/Staat': 'Primär',
+            'Landkreis/Bezirk': 'Sekundär',
+            'Stadt/Gemeinde': 'Tertiär',
+        };
+
+        Array.from(document.querySelectorAll('label')).forEach(function (label) {
+            var text = String(label.textContent || '').trim();
+            if (map[text]) {
+                label.textContent = map[text];
+            }
+        });
+    }
+
     function createBuilder(root) {
         var MAX_PRETTY_GEOJSON_FEATURES = 120;
         var MAX_BOUNDS_POINTS = 4000;
@@ -619,9 +755,20 @@
         var statCities = $('#vm-stat-cities');
         var statArea = $('#vm-stat-area');
         var form = $('#vm-region-group-form');
+        ensureLevelColorControlsInDom();
+        normalizeLevelColorLabelsInDom();
+
         var colorControls = {
             active: { text: $('#vm-color-active'), picker: $('#vm-color-active-picker') },
             inactive: { text: $('#vm-color-inactive'), picker: $('#vm-color-inactive-picker') },
+            country: { text: $('#vm-color-country'), picker: $('#vm-color-country-picker') },
+            state: { text: $('#vm-color-state'), picker: $('#vm-color-state-picker') },
+            county: { text: $('#vm-color-county'), picker: $('#vm-color-county-picker') },
+            city: { text: $('#vm-color-city'), picker: $('#vm-color-city-picker') },
+            countryOpacity: $('#vm-opacity-country'),
+            stateOpacity: $('#vm-opacity-state'),
+            countyOpacity: $('#vm-opacity-county'),
+            cityOpacity: $('#vm-opacity-city'),
             activeOpacity: $('#vm-opacity-active'),
             inactiveOpacity: $('#vm-opacity-inactive'),
         };
@@ -668,6 +815,28 @@
             if (colorControls.inactive.picker && /^#[0-9a-fA-F]{6}$/.test(colors.inactive)) {
                 colorControls.inactive.picker.value = colors.inactive;
             }
+            ['country', 'state', 'county', 'city'].forEach(function (level) {
+                var pair = colorControls[level];
+                var levelColor = colors.levels && colors.levels[level] ? colors.levels[level] : '';
+                if (!pair) {
+                    return;
+                }
+
+                if (pair.text) {
+                    pair.text.value = levelColor;
+                }
+                if (pair.picker && /^#[0-9a-fA-F]{6}$/.test(levelColor)) {
+                    pair.picker.value = levelColor;
+                }
+
+                var opacityField = colorControls[level + 'Opacity'];
+                var levelOpacity = colors.levels_opacity && Number.isFinite(Number(colors.levels_opacity[level]))
+                    ? Number(colors.levels_opacity[level])
+                    : 0.42;
+                if (opacityField) {
+                    opacityField.value = String(Math.round(levelOpacity * 100));
+                }
+            });
             if (colorControls.activeOpacity) {
                 colorControls.activeOpacity.value = String(Math.round(colors.active_opacity * 100));
             }
@@ -699,6 +868,44 @@
                         if (pair.text) {
                             pair.text.value = pair.picker.value;
                         }
+                        queueSync();
+                    });
+                }
+            });
+
+            ['country', 'state', 'county', 'city'].forEach(function (level) {
+                var pair = colorControls[level];
+                if (!pair) {
+                    return;
+                }
+
+                if (pair.text) {
+                    pair.text.addEventListener('input', function () {
+                        var valid = ensureCssColor(pair.text.value, '');
+                        if (valid) {
+                            state.colors.levels[level] = valid;
+                            if (pair.picker && /^#[0-9a-fA-F]{6}$/.test(valid)) {
+                                pair.picker.value = valid;
+                            }
+                            queueSync();
+                        }
+                    });
+                }
+
+                if (pair.picker) {
+                    pair.picker.addEventListener('input', function () {
+                        state.colors.levels[level] = pair.picker.value;
+                        if (pair.text) {
+                            pair.text.value = pair.picker.value;
+                        }
+                        queueSync();
+                    });
+                }
+
+                var opacityField = colorControls[level + 'Opacity'];
+                if (opacityField) {
+                    opacityField.addEventListener('input', function () {
+                        state.colors.levels_opacity[level] = clampOpacity(Number(opacityField.value) / 100, state.colors.levels_opacity[level]);
                         queueSync();
                     });
                 }
@@ -903,14 +1110,10 @@
                     var regionLabel = props.region_name || '';
                     var info = props.info || '';
                     var url = props.url || '';
-                    var area = Number(props.area_km2 || 0);
 
                     var html = '<strong>' + escapeHtml(label) + '</strong>';
                     if (regionLabel && regionLabel !== label) {
                         html += '<br><small class="text-muted">Region: ' + escapeHtml(regionLabel) + '</small>';
-                    }
-                    if (area > 0) {
-                        html += '<br><small class="text-muted">Fläche: ' + area.toFixed(2) + ' km²</small>';
                     }
                     if (info) {
                         html += '<div style="margin-top:6px">' + escapeHtml(info) + '</div>';
@@ -1167,6 +1370,24 @@
             var truncated = false;
             var colors = normalizeColors(stateData.colors);
 
+            function resolveActiveFillForLevel(level) {
+                var normalized = normalizeBoundaryLevel(level);
+                if (colors.levels && colors.levels[normalized]) {
+                    return colors.levels[normalized];
+                }
+
+                return colors.active;
+            }
+
+            function resolveActiveOpacityForLevel(level) {
+                var normalized = normalizeBoundaryLevel(level);
+                if (colors.levels_opacity && Number.isFinite(Number(colors.levels_opacity[normalized]))) {
+                    return Number(colors.levels_opacity[normalized]);
+                }
+
+                return colors.active_opacity;
+            }
+
             stateData.regions.forEach(function (region) {
                 if (truncated) {
                     return;
@@ -1196,6 +1417,9 @@
                     var cityActive = city.active !== false;
                     var cityArea = Number(city.area_km2 || 0);
                     var cityLabel = String(city.label || '').trim();
+                    var cityLevel = normalizeBoundaryLevel(city.boundary_level);
+                    var cityActiveFill = resolveActiveFillForLevel(cityLevel);
+                    var cityActiveOpacity = resolveActiveOpacityForLevel(cityLevel);
                     regionArea += cityArea;
                     regionCityCount += 1;
                     cityFeatureCount += 1;
@@ -1211,13 +1435,13 @@
                             region_name: regionName,
                             name: city.name,
                             display_name: city.display_name,
+                            boundary_level: cityLevel,
                             active: cityActive,
-                            fill: cityActive ? activeFill : inactiveFill,
-                            fill_opacity: cityActive ? colors.active_opacity : colors.inactive_opacity,
+                            fill: cityActive ? cityActiveFill : inactiveFill,
+                            fill_opacity: cityActive ? cityActiveOpacity : colors.inactive_opacity,
                             url: String(city.url || '').trim(),
                             region_url: regionUrl,
                             info: String(city.info || '').trim(),
-                            area_km2: cityArea,
                             osm_type: city.osm_type,
                             osm_id: city.osm_id,
                         },
@@ -1270,7 +1494,6 @@
                             fill_opacity: Number((colors.active_opacity * 0.45).toFixed(3)),
                             url: regionUrl,
                             info: regionInfo,
-                            area_km2: Number(regionArea.toFixed(3)),
                             city_count: regionCityCount,
                         },
                     });
@@ -1433,10 +1656,21 @@
                 var visibleCities = region.showAllCities ? region.cities : region.cities.slice(0, MAX_VISIBLE_CITY_ROWS);
                 var cityRows = visibleCities.length
                     ? visibleCities.map(function (city, cityIndex) {
+                        var cityLevel = normalizeBoundaryLevel(city.boundary_level);
+                        var styleOptions = [
+                            { value: 'country', label: 'Default' },
+                            { value: 'state', label: 'Primär' },
+                            { value: 'county', label: 'Sekundär' },
+                            { value: 'city', label: 'Tertiär' },
+                        ].map(function (opt) {
+                            return '<option value="' + opt.value + '"' + (cityLevel === opt.value ? ' selected' : '') + '>' + opt.label + '</option>';
+                        }).join('');
+
                         return ''
                             + '<tr' + (city.active === false ? ' class="text-muted" style="opacity:.65"' : '') + '>'
                             + '<td><strong>' + escapeHtml(city.name) + '</strong><br><small class="text-muted">' + escapeHtml(city.display_name || '') + '</small></td>'
                             + '<td><input type="text" class="form-control input-sm" data-field="city-label" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '" value="' + escapeHtml(city.label || '') + '" placeholder="leer = kein Label"></td>'
+                            + '<td><select class="form-control input-sm" data-field="city-level" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '">' + styleOptions + '</select></td>'
                             + '<td>' + Number(city.area_km2 || 0).toFixed(2) + ' km²</td>'
                             + '<td style="text-align:center"><input type="checkbox" data-field="city-active" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '"' + (city.active !== false ? ' checked' : '') + ' title="Stadtfläche aktiv/inaktiv"></td>'
                             + '<td><input type="text" class="form-control input-sm" data-field="city-url" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '" value="' + escapeHtml(city.url || '') + '" placeholder="Optionaler Link je Stadtgebiet"></td>'
@@ -1444,12 +1678,12 @@
                             + '<td style="width:1%"><button type="button" class="btn btn-xs btn-danger" data-action="remove-city" data-region-id="' + escapeHtml(region.id) + '" data-city-index="' + cityIndex + '">Entfernen</button></td>'
                             + '</tr>';
                     }).join('')
-                    : '<tr><td colspan="7" class="text-muted">Noch keine Stadtgrenze hinzugefügt.</td></tr>';
+                    : '<tr><td colspan="8" class="text-muted">Noch keine Stadtgrenze hinzugefügt.</td></tr>';
 
                 if (!region.showAllCities && region.cities.length > MAX_VISIBLE_CITY_ROWS) {
                     cityRows += ''
                         + '<tr>'
-                        + '<td colspan="7" class="text-muted">'
+                        + '<td colspan="8" class="text-muted">'
                         + 'Zur Performance werden ' + MAX_VISIBLE_CITY_ROWS + ' von ' + region.cities.length + ' Stadtflächen angezeigt. '
                         + '<button type="button" class="btn btn-xs btn-default" data-action="show-all-cities" data-region-id="' + escapeHtml(region.id) + '">Alle anzeigen</button>'
                         + '</td>'
@@ -1469,9 +1703,9 @@
                     + '  </div>'
                     + '  <div class="panel-body">'
                     + '    <div class="row" style="margin-bottom:8px">'
-                    + '      <div class="col-sm-3"><label>Name</label><input type="text" class="form-control" data-field="region-name" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.name || '') + '" placeholder="z. B. Kreis Dortmund"></div>'
+                    + '      <div class="col-sm-3"><label>Name</label><input type="text" class="form-control" data-field="region-name" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.name || '') + '" placeholder="z. B. Region Nord"></div>'
                     + '      <div class="col-sm-2"><label>Region-Label</label><input type="text" class="form-control" data-field="region-label" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.label || '') + '" placeholder="leer = kein Label"></div>'
-                    + '      <div class="col-sm-3"><label>Schlüssel</label><input type="text" class="form-control" data-field="region-key" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.key || '') + '" placeholder="kreis-dortmund"></div>'
+                    + '      <div class="col-sm-3"><label>Schlüssel</label><input type="text" class="form-control" data-field="region-key" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.key || '') + '" placeholder="region-nord"></div>'
                     + '      <div class="col-sm-2"><label>Farbe (überschreibt global)</label>'
                     + '        <div style="display:flex;gap:4px;align-items:center">'
                     + '          <input type="color" data-field="region-color-picker" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(/^#[0-9a-fA-F]{6}$/.test(region.color || '') ? region.color : '#2f855a') + '" style="width:34px;height:30px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">'
@@ -1485,7 +1719,7 @@
                     + '    </div>'
                     + '    <div class="well well-sm" style="margin-bottom:10px">'
                     + '      <div class="row">'
-                    + '        <div class="col-sm-6"><label>Stadt suchen</label><input type="text" class="form-control" data-field="city-search" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.search || '') + '" placeholder="z. B. Dortmund"></div>'
+                    + '        <div class="col-sm-6"><label>Gebiet suchen</label><input type="text" class="form-control" data-field="city-search" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.search || '') + '" placeholder="z. B. Dortmund"></div>'
                     + '        <div class="col-sm-3"><label>Ländercodes</label><input type="text" class="form-control" data-field="countrycodes" data-region-id="' + escapeHtml(region.id) + '" value="' + escapeHtml(region.countrycodes || '') + '" placeholder="z. B. de oder leer = global"></div>'
                     + '        <div class="col-sm-3"><label>&nbsp;</label><button type="button" class="btn btn-primary btn-block" data-action="search-city" data-region-id="' + escapeHtml(region.id) + '">Suche starten</button></div>'
                     + '      </div>'
@@ -1494,7 +1728,7 @@
                     + '    </div>'
                     + '    <div class="table-responsive">'
                     + '      <table class="table table-condensed table-striped" style="margin-bottom:0">'
-                    + '        <thead><tr><th>Stadtfläche</th><th>Label</th><th>Fläche</th><th>Aktiv</th><th>Link je Stadtgebiet</th><th>Info je Stadtgebiet</th><th></th></tr></thead>'
+                    + '        <thead><tr><th>Stadtfläche</th><th>Label</th><th>Stil</th><th>Fläche</th><th>Aktiv</th><th>Link je Stadtgebiet</th><th>Info je Stadtgebiet</th><th></th></tr></thead>'
                     + '        <tbody>' + cityRows + '</tbody>'
                     + '      </table>'
                     + '    </div>'
@@ -1634,6 +1868,7 @@
                         name: fallbackName,
                         label: fallbackName,
                         display_name: fallbackDisplayName,
+                        boundary_level: detectBoundaryLevelFromSearchItem(searchItem),
                         osm_type: searchItem.osm_type,
                         osm_id: searchItem.osm_id,
                         geometry: geometry,
@@ -1756,7 +1991,7 @@
                 } else if (field === 'city-search') {
                     region.search = target.value;
                     shouldSync = false;
-                } else if (field === 'city-url' || field === 'city-info' || field === 'city-label') {
+                } else if (field === 'city-url' || field === 'city-info' || field === 'city-label' || field === 'city-level') {
                     var cityIndex = Number(target.getAttribute('data-city-index'));
                     if (!Number.isFinite(cityIndex) || cityIndex < 0 || cityIndex >= region.cities.length) {
                         return;
@@ -1766,6 +2001,8 @@
                         region.cities[cityIndex].url = target.value;
                     } else if (field === 'city-label') {
                         region.cities[cityIndex].label = target.value;
+                    } else if (field === 'city-level') {
+                        region.cities[cityIndex].boundary_level = normalizeBoundaryLevel(target.value);
                     } else {
                         region.cities[cityIndex].info = target.value;
                     }
@@ -1780,6 +2017,23 @@
             regionList.addEventListener('change', function (event) {
                 var target = event.target;
                 if (!(target instanceof HTMLElement)) {
+                    return;
+                }
+
+                if (target.getAttribute('data-field') === 'city-level') {
+                    var regionIdLevel = target.getAttribute('data-region-id') || '';
+                    var regionLevel = findRegion(regionIdLevel);
+                    if (!regionLevel) {
+                        return;
+                    }
+
+                    var cityLevelIndex = Number(target.getAttribute('data-city-index'));
+                    if (!Number.isFinite(cityLevelIndex) || cityLevelIndex < 0 || cityLevelIndex >= regionLevel.cities.length) {
+                        return;
+                    }
+
+                    regionLevel.cities[cityLevelIndex].boundary_level = normalizeBoundaryLevel(target.value);
+                    queueSync();
                     return;
                 }
 

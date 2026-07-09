@@ -62,6 +62,18 @@ $initialColors = is_array($editGroup) && isset($editGroup['payload']['colors']) 
         'inactive' => '#9ca3af',
         'active_opacity' => 0.42,
         'inactive_opacity' => 0.15,
+        'levels' => [
+            'country' => '#0f766e',
+            'state' => '#2563eb',
+            'county' => '#f59e0b',
+            'city' => '#2f855a',
+        ],
+        'levels_opacity' => [
+            'country' => 0.42,
+            'state' => 0.42,
+            'county' => 0.42,
+            'city' => 0.42,
+        ],
     ];
 
 $initialOptimize = is_array($editGroup) && isset($editGroup['payload']['optimize']) && is_array($editGroup['payload']['optimize'])
@@ -110,7 +122,7 @@ $formHtml .= '<legend>Gruppe</legend>';
 $formHtml .= '<div class="rex-form-group form-group">';
 $formHtml .= '<label class="control-label col-sm-3" for="vm-group-key">Gruppen-Schlüssel</label>';
 $formHtml .= '<div class="col-sm-9">';
-$formHtml .= '<input class="form-control" id="vm-group-key" name="group_key" type="text" value="' . rex_escape($currentKey) . '" placeholder="fussballverband-kreise" required>';
+$formHtml .= '<input class="form-control" id="vm-group-key" name="group_key" type="text" value="' . rex_escape($currentKey) . '" placeholder="regionen-deutschland" required>';
 $formHtml .= '<p class="help-block">Nur a-z, 0-9, Bindestrich und Unterstrich. Wird für API und Wiederverwendung genutzt.</p>';
 $formHtml .= '</div>';
 $formHtml .= '</div>';
@@ -118,7 +130,7 @@ $formHtml .= '</div>';
 $formHtml .= '<div class="rex-form-group form-group">';
 $formHtml .= '<label class="control-label col-sm-3" for="vm-group-name">Gruppen-Name</label>';
 $formHtml .= '<div class="col-sm-9">';
-$formHtml .= '<input class="form-control" id="vm-group-name" name="group_name" type="text" value="' . rex_escape($currentName) . '" placeholder="Fußballverband Kreise NRW" required>';
+$formHtml .= '<input class="form-control" id="vm-group-name" name="group_name" type="text" value="' . rex_escape($currentName) . '" placeholder="Regionen Deutschland" required>';
 $formHtml .= '</div>';
 $formHtml .= '</div>';
 
@@ -138,7 +150,7 @@ $formHtml .= '<label style="font-weight:normal">Aktive Flächen</label>';
 $formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
 $formHtml .= '<input type="color" id="vm-color-active-picker" value="#2f855a" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
 $formHtml .= '<input type="text" class="form-control" id="vm-color-active" value="#2f855a" placeholder="#2f855a oder rgba(47,133,90,.8)">';
-$formHtml .= '<input type="number" class="form-control" id="vm-opacity-active" min="0" max="100" step="5" value="42" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-active" min="0" max="100" step="1" value="42" style="width:80px" title="Deckkraft in %">';
 $formHtml .= '<span class="text-muted">%</span>';
 $formHtml .= '</div>';
 $formHtml .= '</div>';
@@ -147,12 +159,50 @@ $formHtml .= '<label style="font-weight:normal">Inaktive Flächen</label>';
 $formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
 $formHtml .= '<input type="color" id="vm-color-inactive-picker" value="#9ca3af" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
 $formHtml .= '<input type="text" class="form-control" id="vm-color-inactive" value="#9ca3af" placeholder="#9ca3af oder rgba(156,163,175,.5)">';
-$formHtml .= '<input type="number" class="form-control" id="vm-opacity-inactive" min="0" max="100" step="5" value="15" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-inactive" min="0" max="100" step="1" value="15" style="width:80px" title="Deckkraft in %">';
 $formHtml .= '<span class="text-muted">%</span>';
 $formHtml .= '</div>';
 $formHtml .= '</div>';
 $formHtml .= '</div>';
-$formHtml .= '<p class="help-block" style="margin-bottom:0">Picker oder freie Eingabe (Hex, rgba, hsl – auch transparent). Deckkraft in Prozent. Regionen können die Farbe einzeln überschreiben.</p>';
+$formHtml .= '<div class="row" style="margin-top:10px">';
+$formHtml .= '<div class="col-sm-3" style="margin-bottom:8px">';
+$formHtml .= '<label style="font-weight:normal">Default</label>';
+$formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
+$formHtml .= '<input type="color" id="vm-color-country-picker" value="#0f766e" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
+$formHtml .= '<input type="text" class="form-control" id="vm-color-country" value="#0f766e" placeholder="#0f766e">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-country" min="0" max="100" step="1" value="42" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<span class="text-muted">%</span>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '<div class="col-sm-3" style="margin-bottom:8px">';
+$formHtml .= '<label style="font-weight:normal">Primär</label>';
+$formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
+$formHtml .= '<input type="color" id="vm-color-state-picker" value="#2563eb" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
+$formHtml .= '<input type="text" class="form-control" id="vm-color-state" value="#2563eb" placeholder="#2563eb">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-state" min="0" max="100" step="1" value="42" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<span class="text-muted">%</span>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '<div class="col-sm-3" style="margin-bottom:8px">';
+$formHtml .= '<label style="font-weight:normal">Sekundär</label>';
+$formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
+$formHtml .= '<input type="color" id="vm-color-county-picker" value="#f59e0b" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
+$formHtml .= '<input type="text" class="form-control" id="vm-color-county" value="#f59e0b" placeholder="#f59e0b">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-county" min="0" max="100" step="1" value="42" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<span class="text-muted">%</span>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '<div class="col-sm-3" style="margin-bottom:8px">';
+$formHtml .= '<label style="font-weight:normal">Tertiär</label>';
+$formHtml .= '<div style="display:flex;gap:6px;align-items:center">';
+$formHtml .= '<input type="color" id="vm-color-city-picker" value="#2f855a" style="width:38px;height:32px;padding:1px;border:1px solid #ccc;border-radius:4px" title="Farbe wählen">';
+$formHtml .= '<input type="text" class="form-control" id="vm-color-city" value="#2f855a" placeholder="#2f855a">';
+$formHtml .= '<input type="number" class="form-control" id="vm-opacity-city" min="0" max="100" step="1" value="42" style="width:80px" title="Deckkraft in %">';
+$formHtml .= '<span class="text-muted">%</span>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '<p class="help-block" style="margin-bottom:0">Farben können als Hex, rgba oder hsl gesetzt werden. Für jede Stufe (Default/Primär/Sekundär/Tertiär) lässt sich zusätzlich eine eigene Deckkraft in % definieren.</p>';
 $formHtml .= '</div>';
 $formHtml .= '</div>';
 

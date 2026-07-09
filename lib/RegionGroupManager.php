@@ -265,7 +265,14 @@ final class RegionGroupManager
     }
 
     /**
-     * @return array{active: string, inactive: string, active_opacity: float, inactive_opacity: float}
+     * @return array{
+     *   active: string,
+     *   inactive: string,
+     *   active_opacity: float,
+     *   inactive_opacity: float,
+    *   levels: array{country: string, state: string, county: string, city: string},
+    *   levels_opacity: array{country: float, state: float, county: float, city: float}
+     * }
      */
     private static function normalizeColors(mixed $raw): array
     {
@@ -274,10 +281,32 @@ final class RegionGroupManager
             'inactive' => '#9ca3af',
             'active_opacity' => 0.42,
             'inactive_opacity' => 0.15,
+            'levels' => [
+                'country' => '#0f766e',
+                'state' => '#2563eb',
+                'county' => '#f59e0b',
+                'city' => '#2f855a',
+            ],
+            'levels_opacity' => [
+                'country' => 0.42,
+                'state' => 0.42,
+                'county' => 0.42,
+                'city' => 0.42,
+            ],
         ];
 
         if (!is_array($raw)) {
             return $defaults;
+        }
+
+        $rawLevels = [];
+        if (isset($raw['levels']) && is_array($raw['levels'])) {
+            $rawLevels = $raw['levels'];
+        }
+
+        $rawLevelsOpacity = [];
+        if (isset($raw['levels_opacity']) && is_array($raw['levels_opacity'])) {
+            $rawLevelsOpacity = $raw['levels_opacity'];
         }
 
         return [
@@ -285,7 +314,29 @@ final class RegionGroupManager
             'inactive' => self::sanitizeCssColor((string) ($raw['inactive'] ?? ''), $defaults['inactive']),
             'active_opacity' => self::clampOpacity($raw['active_opacity'] ?? null, $defaults['active_opacity']),
             'inactive_opacity' => self::clampOpacity($raw['inactive_opacity'] ?? null, $defaults['inactive_opacity']),
+            'levels' => [
+                'country' => self::sanitizeCssColor((string) ($rawLevels['country'] ?? ''), $defaults['levels']['country']),
+                'state' => self::sanitizeCssColor((string) ($rawLevels['state'] ?? ''), $defaults['levels']['state']),
+                'county' => self::sanitizeCssColor((string) ($rawLevels['county'] ?? ''), $defaults['levels']['county']),
+                'city' => self::sanitizeCssColor((string) ($rawLevels['city'] ?? ''), $defaults['levels']['city']),
+            ],
+            'levels_opacity' => [
+                'country' => self::clampOpacity($rawLevelsOpacity['country'] ?? null, $defaults['levels_opacity']['country']),
+                'state' => self::clampOpacity($rawLevelsOpacity['state'] ?? null, $defaults['levels_opacity']['state']),
+                'county' => self::clampOpacity($rawLevelsOpacity['county'] ?? null, $defaults['levels_opacity']['county']),
+                'city' => self::clampOpacity($rawLevelsOpacity['city'] ?? null, $defaults['levels_opacity']['city']),
+            ],
         ];
+    }
+
+    private static function normalizeBoundaryLevel(mixed $level): string
+    {
+        $normalized = strtolower(trim((string) $level));
+        if (in_array($normalized, ['country', 'state', 'county', 'city'], true)) {
+            return $normalized;
+        }
+
+        return 'city';
     }
 
     /**
@@ -478,6 +529,7 @@ final class RegionGroupManager
                 $cityLabel = array_key_exists('label', $cityRaw)
                     ? trim((string) $cityRaw['label'])
                     : $cityName;
+                $cityBoundaryLevel = self::normalizeBoundaryLevel($cityRaw['boundary_level'] ?? null);
 
                 $cityArea = (float) ($cityRaw['area_km2'] ?? 0);
                 if ($cityArea < 0) {
@@ -488,6 +540,7 @@ final class RegionGroupManager
                     'name' => $cityName,
                     'label' => $cityLabel,
                     'display_name' => trim((string) ($cityRaw['display_name'] ?? $cityName)),
+                    'boundary_level' => $cityBoundaryLevel,
                     'osm_type' => strtoupper(trim((string) ($cityRaw['osm_type'] ?? ''))),
                     'osm_id' => (int) ($cityRaw['osm_id'] ?? 0),
                     'geometry' => $geometry,
@@ -641,6 +694,16 @@ final class RegionGroupManager
             $regionName = (string) ($region['name'] ?? $regionKey);
             $regionLabel = trim((string) ($region['label'] ?? $regionName));
             $regionColorOverride = self::sanitizeCssColor((string) ($region['color'] ?? ''));
+            $resolveActiveFill = static function (string $boundaryLevel) use ($colors, $regionColorOverride): string {
+                if ('' !== $regionColorOverride) {
+                    return $regionColorOverride;
+                }
+
+                return (string) ($colors['levels'][$boundaryLevel] ?? $colors['active']);
+            };
+            $resolveActiveOpacity = static function (string $boundaryLevel) use ($colors): float {
+                return (float) ($colors['levels_opacity'][$boundaryLevel] ?? $colors['active_opacity']);
+            };
             $activeFill = '' !== $regionColorOverride ? $regionColorOverride : $colors['active'];
             $inactiveFill = $colors['inactive'];
             $regionUrl = (string) ($region['url'] ?? '');
@@ -667,6 +730,9 @@ final class RegionGroupManager
                 $cityInfo = (string) ($city['info'] ?? '');
                 $cityArea = (float) ($city['area_km2'] ?? 0);
                 $cityActive = false !== ($city['active'] ?? true);
+                $cityBoundaryLevel = self::normalizeBoundaryLevel($city['boundary_level'] ?? null);
+                $cityActiveFill = $resolveActiveFill($cityBoundaryLevel);
+                $cityActiveOpacity = $resolveActiveOpacity($cityBoundaryLevel);
 
                 $features[] = [
                     'type' => 'Feature',
@@ -679,13 +745,13 @@ final class RegionGroupManager
                         'region_name' => $regionName,
                         'name' => $cityName,
                         'display_name' => $cityDisplayName,
+                        'boundary_level' => $cityBoundaryLevel,
                         'active' => $cityActive,
-                        'fill' => $cityActive ? $activeFill : $inactiveFill,
-                        'fill_opacity' => $cityActive ? $colors['active_opacity'] : $colors['inactive_opacity'],
+                        'fill' => $cityActive ? $cityActiveFill : $inactiveFill,
+                        'fill_opacity' => $cityActive ? $cityActiveOpacity : $colors['inactive_opacity'],
                         'url' => $cityUrl,
                         'region_url' => $regionUrl,
                         'info' => $cityInfo,
-                        'area_km2' => $cityArea,
                         'osm_type' => (string) ($city['osm_type'] ?? ''),
                         'osm_id' => (int) ($city['osm_id'] ?? 0),
                     ],
@@ -749,7 +815,6 @@ final class RegionGroupManager
                     'fill_opacity' => round($colors['active_opacity'] * 0.45, 3),
                     'url' => $regionUrl,
                     'info' => $regionInfo,
-                    'area_km2' => $regionArea,
                     'city_count' => count($cities),
                 ],
             ];
