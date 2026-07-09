@@ -31,6 +31,11 @@ if (rex_request('rex_api_vm_theme_action', 'string', '') !== '') {
     ThemeManager::handleApiRequest();
 }
 
+// Regionen-Gruppen API (abrufbare GeoJSON-Ausgabe)
+if (rex_request('rex_api_vector_maps_regions', 'int', 0) === 1) {
+    RegionGroupManager::serveApi();
+}
+
 if (rex_addon::get('builder')->isAvailable()) {
     require_once __DIR__ . '/lib/Fields/VectorMapPickerField.php';
 
@@ -93,6 +98,11 @@ if (rex::isBackend() && rex::getUser()) {
     // Theme-Editor-Script nur auf der Themes-Seite laden
     if (rex_be_controller::getCurrentPage() === 'vector_maps/themes') {
         rex_view::addJsFile($vmVer('build/theme-editor.js'));
+    }
+
+    // Regionen-Builder nur auf der Regionen-Seite laden
+    if (rex_be_controller::getCurrentPage() === 'vector_maps/regions') {
+        rex_view::addJsFile($vmVer('build/regions-editor.js'));
     }
     
 }

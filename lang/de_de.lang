@@ -7,6 +7,7 @@ vector_maps_demo_nearby = Umgebungssuche
 vector_maps_demo_advanced = Erweiterte Features
 vector_maps_demo_skins = Design-Skins & UI-Styling
 vector_maps_themes = Themes
+vector_maps_regions = Regionen
 vector_maps_demo_info = Auf dieser Seite kann der Vector Maps Picker und das native 3D-Rendering getestet werden.
 vector_maps_settings = Einstellungen
 vector_maps_cache_cleared = Der Vector Maps Cache wurde erfolgreich geleert.
@@ -40,3 +41,8 @@ vector_maps_yform_location_description = Koordinaten-Feld mit Vector-Maps-Picker
 vector_maps_yform_map_style = Basis-Kartenstil
 vector_maps_yform_theme = Initiales Theme
 vector_maps_yform_required = Eingabe erforderlich
+
+vector_maps_regions_saved = Gruppe wurde gespeichert.
+vector_maps_regions_deleted = Gruppe wurde gelöscht.
+vector_maps_regions_error = Gruppe konnte nicht verarbeitet werden.
+vector_maps_regions_missing_key = Bitte einen gültigen Gruppen-Schlüssel vergeben (a-z, 0-9, -, _).

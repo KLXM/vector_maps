@@ -7,6 +7,7 @@ vector_maps_demo_nearby = Nearby Search
 vector_maps_demo_advanced = Advanced Features
 vector_maps_demo_skins = Design Skins & UI Styling
 vector_maps_themes = Themes
+vector_maps_regions = Regions
 vector_maps_settings = Settings
 vector_maps_cache_cleared = The Vector Maps cache was cleared successfully.
 vector_maps_cache_clear_error = Error while clearing the Vector Maps cache.
@@ -39,3 +40,8 @@ vector_maps_yform_location_description = Coordinate field with Vector Maps picke
 vector_maps_yform_map_style = Base map style
 vector_maps_yform_theme = Initial theme
 vector_maps_yform_required = Input required
+
+vector_maps_regions_saved = Group has been saved.
+vector_maps_regions_deleted = Group has been deleted.
+vector_maps_regions_error = Group could not be processed.
+vector_maps_regions_missing_key = Please provide a valid group key (a-z, 0-9, -, _).

@@ -28,6 +28,8 @@ page:
           title: 'translate:vector_maps_demo_skins'
     themes:
       title: 'translate:vector_maps_themes'
+    regions:
+      title: 'translate:vector_maps_regions'
     settings:
       title: 'translate:vector_maps_settings'
     readme:

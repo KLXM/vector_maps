@@ -30,6 +30,7 @@ const ownJsFiles = [
     'build/vectormaps.js',
     'build/vectormaps_i18n.js',
     'build/theme-editor.js',
+    'build/regions-editor.js',
 ];
 
 const ownCssFiles = [
