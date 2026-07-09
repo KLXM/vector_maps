@@ -55,19 +55,29 @@ $currentKey = is_array($editGroup) ? (string) ($editGroup['key'] ?? '') : '';
 $currentName = is_array($editGroup) ? (string) ($editGroup['name'] ?? '') : '';
 $currentDescription = is_array($editGroup) ? (string) ($editGroup['description'] ?? '') : '';
 
+$initialColors = is_array($editGroup) && isset($editGroup['payload']['colors']) && is_array($editGroup['payload']['colors'])
+    ? $editGroup['payload']['colors']
+    : [
+        'active' => '#2f855a',
+        'inactive' => '#9ca3af',
+        'active_opacity' => 0.42,
+        'inactive_opacity' => 0.15,
+    ];
+
+$initialOptimize = is_array($editGroup) && isset($editGroup['payload']['optimize']) && is_array($editGroup['payload']['optimize'])
+    ? $editGroup['payload']['optimize']
+    : [
+        'enabled' => false,
+        'precision' => 6,
+    ];
+
 $initialPayload = [
-    'description' => $currentDescription,
-    'colors' => is_array($editGroup) && isset($editGroup['payload']['colors']) && is_array($editGroup['payload']['colors'])
-        ? $editGroup['payload']['colors']
-        : [
-            'active' => '#2f855a',
-            'inactive' => '#9ca3af',
-            'active_opacity' => 0.42,
-            'inactive_opacity' => 0.15,
-        ],
-    'regions' => is_array($editGroup) && isset($editGroup['payload']['regions']) && is_array($editGroup['payload']['regions'])
-        ? $editGroup['payload']['regions']
-        : [],
+    // Große Regions-Geometrien werden für bestehende Gruppen per AJAX nachgeladen,
+    // damit die Seite sofort rendert und der initiale HTML-Payload klein bleibt.
+    'description' => '' !== $currentKey ? '' : $currentDescription,
+    'colors' => $initialColors,
+    'optimize' => $initialOptimize,
+    'regions' => [],
 ];
 
 $initialPayloadJson = (string) json_encode($initialPayload, JSON_UNESCAPED_UNICODE);
@@ -146,12 +156,29 @@ $formHtml .= '<p class="help-block" style="margin-bottom:0">Picker oder freie Ei
 $formHtml .= '</div>';
 $formHtml .= '</div>';
 
+$formHtml .= '<div class="rex-form-group form-group">';
+$formHtml .= '<label class="control-label col-sm-3">JSON-Optimierung (optional)</label>';
+$formHtml .= '<div class="col-sm-9">';
+$formHtml .= '<div class="checkbox" style="margin-top:0">';
+$formHtml .= '<label><input type="checkbox" id="vm-optimize-enabled"> Geometrie beim Speichern komprimieren</label>';
+$formHtml .= '</div>';
+$formHtml .= '<div class="row" style="max-width:380px">';
+$formHtml .= '<div class="col-sm-6">';
+$formHtml .= '<label for="vm-optimize-precision" style="font-weight:normal">Koordinaten-Präzision</label>';
+$formHtml .= '<input type="number" class="form-control" id="vm-optimize-precision" min="4" max="7" step="1" value="6">';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+$formHtml .= '<p class="help-block" style="margin-bottom:0">Empfehlung: 6. Reduziert Dateigröße spürbar (oft 20-50%), Grenzen bleiben in der Regel visuell stabil.</p>';
+$formHtml .= '</div>';
+$formHtml .= '</div>';
+
 $formHtml .= '</fieldset>';
 
 $formHtml .= '<fieldset style="margin-top:20px">';
 $formHtml .= '<legend>Regionen-Builder</legend>';
 $formHtml .= '<div id="vm-region-group-builder" '
     . 'data-initial-payload="' . rex_escape($initialPayloadJson) . '" '
+    . 'data-initial-group-key="' . rex_escape($currentKey) . '" '
     . 'data-proxy-url="' . rex_escape($proxyApiUrl) . '" '
     . 'data-regions-api-url="' . rex_escape($regionsApiUrl) . '">';
 $formHtml .= '<div class="row">';

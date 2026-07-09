@@ -56,6 +56,215 @@ final class RegionGroupManager
     }
 
     /**
+     * @return array{enabled: bool, precision: int}
+     */
+    private static function normalizeOptimize(mixed $raw): array
+    {
+        $defaults = [
+            'enabled' => false,
+            'precision' => 6,
+        ];
+
+        if (!is_array($raw)) {
+            return $defaults;
+        }
+
+        $precision = (int) ($raw['precision'] ?? $defaults['precision']);
+        if ($precision < 4) {
+            $precision = 4;
+        }
+        if ($precision > 7) {
+            $precision = 7;
+        }
+
+        return [
+            'enabled' => false !== ($raw['enabled'] ?? false),
+            'precision' => $precision,
+        ];
+    }
+
+    /**
+     * @param array<int, array{0: float|int, 1: float|int}> $points
+     * @return array<int, array{0: float, 1: float}>
+     */
+    private static function simplifyRing(array $points, float $epsilon): array
+    {
+        if (count($points) < 4) {
+            return array_map(
+                static fn (array $p): array => [(float) $p[0], (float) $p[1]],
+                $points
+            );
+        }
+
+        $closed = $points[0][0] === $points[count($points) - 1][0]
+            && $points[0][1] === $points[count($points) - 1][1];
+
+        $work = $closed ? array_slice($points, 0, -1) : $points;
+        if (count($work) < 3) {
+            return array_map(
+                static fn (array $p): array => [(float) $p[0], (float) $p[1]],
+                $points
+            );
+        }
+
+        $keep = array_fill(0, count($work), false);
+        $keep[0] = true;
+        $keep[count($work) - 1] = true;
+
+        $stack = [[0, count($work) - 1]];
+        while ([] !== $stack) {
+            [$start, $end] = array_pop($stack);
+            $maxDist = 0.0;
+            $index = -1;
+
+            $ax = (float) $work[$start][0];
+            $ay = (float) $work[$start][1];
+            $bx = (float) $work[$end][0];
+            $by = (float) $work[$end][1];
+
+            $dx = $bx - $ax;
+            $dy = $by - $ay;
+            $den = ($dx * $dx) + ($dy * $dy);
+
+            for ($i = $start + 1; $i < $end; ++$i) {
+                $px = (float) $work[$i][0];
+                $py = (float) $work[$i][1];
+
+                if ($den > 0.0) {
+                    $t = (($px - $ax) * $dx + ($py - $ay) * $dy) / $den;
+                    $t = max(0.0, min(1.0, $t));
+                    $projX = $ax + ($t * $dx);
+                    $projY = $ay + ($t * $dy);
+                } else {
+                    $projX = $ax;
+                    $projY = $ay;
+                }
+
+                $dist = sqrt((($px - $projX) ** 2) + (($py - $projY) ** 2));
+                if ($dist > $maxDist) {
+                    $maxDist = $dist;
+                    $index = $i;
+                }
+            }
+
+            if ($index >= 0 && $maxDist > $epsilon) {
+                $keep[$index] = true;
+                $stack[] = [$start, $index];
+                $stack[] = [$index, $end];
+            }
+        }
+
+        $out = [];
+        foreach ($work as $i => $point) {
+            if ($keep[$i]) {
+                $out[] = [(float) $point[0], (float) $point[1]];
+            }
+        }
+
+        if (count($out) < 3) {
+            $out = array_map(
+                static fn (array $p): array => [(float) $p[0], (float) $p[1]],
+                $work
+            );
+        }
+
+        if ($closed) {
+            $out[] = $out[0];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $geometry
+     * @return array<string, mixed>
+     */
+    private static function optimizeGeometry(array $geometry, int $precision): array
+    {
+        $type = (string) ($geometry['type'] ?? '');
+        $coordinates = $geometry['coordinates'] ?? null;
+
+        if (!is_array($coordinates) || !in_array($type, ['Polygon', 'MultiPolygon'], true)) {
+            return $geometry;
+        }
+
+        $factor = 10 ** $precision;
+        $epsilon = 1 / $factor;
+
+        $roundPoint = static fn (array $point): array => [
+            round((float) $point[0], $precision),
+            round((float) $point[1], $precision),
+        ];
+
+        $optimizePolygon = static function (array $polygon) use ($roundPoint, $epsilon): array {
+            $rings = [];
+            foreach ($polygon as $ringIndex => $ring) {
+                if (!is_array($ring)) {
+                    continue;
+                }
+
+                $points = [];
+                foreach ($ring as $point) {
+                    if (is_array($point) && isset($point[0], $point[1])) {
+                        $points[] = $roundPoint($point);
+                    }
+                }
+
+                if (count($points) < 4) {
+                    continue;
+                }
+
+                $points = self::simplifyRing($points, $epsilon);
+                if (count($points) < 4) {
+                    continue;
+                }
+
+                if ($ringIndex > 0) {
+                    $outer = $rings[0] ?? [];
+                    if ([] !== $outer) {
+                        $outerArea = abs(self::ringArea($outer));
+                        $innerArea = abs(self::ringArea($points));
+                        if ($innerArea > ($outerArea * 0.98)) {
+                            continue;
+                        }
+                    }
+                }
+
+                $rings[] = $points;
+            }
+
+            return $rings;
+        };
+
+        if ('Polygon' === $type) {
+            $polygon = $optimizePolygon($coordinates);
+            if ([] !== $polygon) {
+                $geometry['coordinates'] = $polygon;
+            }
+
+            return $geometry;
+        }
+
+        $polygons = [];
+        foreach ($coordinates as $polygonCoords) {
+            if (!is_array($polygonCoords)) {
+                continue;
+            }
+
+            $polygon = $optimizePolygon($polygonCoords);
+            if ([] !== $polygon) {
+                $polygons[] = $polygon;
+            }
+        }
+
+        if ([] !== $polygons) {
+            $geometry['coordinates'] = $polygons;
+        }
+
+        return $geometry;
+    }
+
+    /**
      * @return array{active: string, inactive: string, active_opacity: float, inactive_opacity: float}
      */
     private static function normalizeColors(mixed $raw): array
@@ -183,6 +392,7 @@ final class RegionGroupManager
     {
         $description = trim((string) ($payload['description'] ?? ''));
         $colors = self::normalizeColors($payload['colors'] ?? null);
+        $optimize = self::normalizeOptimize($payload['optimize'] ?? null);
         $regionsRaw = $payload['regions'] ?? [];
 
         $regions = [];
@@ -243,6 +453,10 @@ final class RegionGroupManager
                     continue;
                 }
 
+                if ($optimize['enabled']) {
+                    $geometry = self::optimizeGeometry($geometry, $optimize['precision']);
+                }
+
                 $cityName = trim((string) ($cityRaw['name'] ?? ''));
                 if ('' === $cityName) {
                     $cityName = 'Unbekannter Ort';
@@ -295,10 +509,48 @@ final class RegionGroupManager
         return [
             'description' => $description,
             'colors' => $colors,
+            'optimize' => $optimize,
             'regions' => $regions,
             'city_count' => $cityCount,
             'area_total_km2' => round($areaTotal, 3),
         ];
+    }
+
+    /**
+     * Sphärische Ringfläche in m² (Vorzeichen je Ringrichtung).
+     *
+     * @param array<int, array{0: float|int, 1: float|int}> $ring
+     */
+    private static function ringArea(array $ring): float
+    {
+        if (count($ring) < 3) {
+            return 0.0;
+        }
+
+        $toRad = static fn (float $value): float => $value * M_PI / 180;
+        $area = 0.0;
+
+        $count = count($ring);
+        for ($i = 0; $i < $count; ++$i) {
+            $lowerIndex = $i;
+            $middleIndex = ($i + 1) % $count;
+            $upperIndex = ($i + 2) % $count;
+
+            $p1 = $ring[$lowerIndex] ?? null;
+            $p2 = $ring[$middleIndex] ?? null;
+            $p3 = $ring[$upperIndex] ?? null;
+            if (!is_array($p1) || !is_array($p2) || !is_array($p3)) {
+                continue;
+            }
+
+            $lng1 = isset($p1[0]) ? (float) $p1[0] : 0.0;
+            $lat2 = isset($p2[1]) ? (float) $p2[1] : 0.0;
+            $lng3 = isset($p3[0]) ? (float) $p3[0] : 0.0;
+
+            $area += ($toRad($lng3) - $toRad($lng1)) * sin($toRad($lat2));
+        }
+
+        return $area * 6378137.0 * 6378137.0 / 2.0;
     }
 
     /**

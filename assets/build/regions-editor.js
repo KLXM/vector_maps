@@ -138,6 +138,32 @@
         };
     }
 
+    function defaultOptimize() {
+        return {
+            enabled: false,
+            precision: 6,
+        };
+    }
+
+    function normalizeOptimize(raw) {
+        var defaults = defaultOptimize();
+        if (!raw || typeof raw !== 'object') {
+            return defaults;
+        }
+
+        var precision = Number(raw.precision);
+        if (!Number.isFinite(precision)) {
+            precision = defaults.precision;
+        }
+        precision = Math.round(precision);
+        precision = Math.max(4, Math.min(7, precision));
+
+        return {
+            enabled: !!raw.enabled,
+            precision: precision,
+        };
+    }
+
     function normalizeColors(raw) {
         var defaults = defaultColors();
         if (!raw || typeof raw !== 'object') {
@@ -208,6 +234,7 @@
         var state = {
             description: String(raw && raw.description ? raw.description : ''),
             colors: normalizeColors(raw && raw.colors),
+            optimize: normalizeOptimize(raw && raw.optimize),
             regions: [],
         };
 
@@ -252,6 +279,7 @@
         return {
             description: String(state.description || ''),
             colors: normalizeColors(state.colors),
+            optimize: normalizeOptimize(state.optimize),
             regions: state.regions.map(function (region) {
                 return {
                     key: String(region.key || ''),
@@ -320,8 +348,13 @@
             activeOpacity: $('#vm-opacity-active'),
             inactiveOpacity: $('#vm-opacity-inactive'),
         };
+        var optimizeControls = {
+            enabled: $('#vm-optimize-enabled'),
+            precision: $('#vm-optimize-precision'),
+        };
 
         var proxyBase = root.getAttribute('data-proxy-url') || '';
+        var initialGroupKey = String(root.getAttribute('data-initial-group-key') || '').trim();
         var initialPayloadRaw = root.getAttribute('data-initial-payload') || '{}';
         var initialState = normalizeState(safeJsonParse(initialPayloadRaw, { description: '', regions: [] }));
 
@@ -336,6 +369,7 @@
         var mapReady = false;
         var mapContainer = $('#vm-builder-map');
         var latestPreviewGeojson = { type: 'FeatureCollection', features: [] };
+        var dataLoadedFromApi = false;
 
         if (groupDescription) {
             groupDescription.value = state.description || '';
@@ -403,6 +437,44 @@
                 colorControls.inactiveOpacity.addEventListener('input', function () {
                     state.colors.inactive_opacity = clampOpacity(Number(colorControls.inactiveOpacity.value) / 100, state.colors.inactive_opacity);
                     queueSync();
+                });
+            }
+        }
+
+        function syncOptimizeControlsFromState() {
+            var optimize = normalizeOptimize(state.optimize);
+            state.optimize = optimize;
+
+            if (optimizeControls.enabled) {
+                optimizeControls.enabled.checked = optimize.enabled;
+            }
+            if (optimizeControls.precision) {
+                optimizeControls.precision.value = String(optimize.precision);
+                optimizeControls.precision.disabled = !optimize.enabled;
+            }
+        }
+
+        function bindOptimizeControls() {
+            if (optimizeControls.enabled) {
+                optimizeControls.enabled.addEventListener('change', function () {
+                    state.optimize.enabled = !!optimizeControls.enabled.checked;
+                    if (optimizeControls.precision) {
+                        optimizeControls.precision.disabled = !state.optimize.enabled;
+                    }
+                    queueSync({ persistPayload: true });
+                });
+            }
+
+            if (optimizeControls.precision) {
+                optimizeControls.precision.addEventListener('input', function () {
+                    var precision = Number(optimizeControls.precision.value);
+                    if (!Number.isFinite(precision)) {
+                        return;
+                    }
+                    precision = Math.max(4, Math.min(7, Math.round(precision)));
+                    state.optimize.precision = precision;
+                    optimizeControls.precision.value = String(precision);
+                    queueSync({ persistPayload: true });
                 });
             }
         }
@@ -629,6 +701,77 @@
                     }, 0);
                 }
             }
+        }
+
+        function renderLoadingState(message) {
+            if (!regionList) {
+                return;
+            }
+
+            regionList.innerHTML = '<div class="alert alert-info" style="margin-bottom:12px">'
+                + '<i class="rex-icon fa-spinner fa-spin"></i> '
+                + escapeHtml(message || 'Lade Gruppendaten...')
+                + '</div>';
+        }
+
+        function loadGroupPayloadByApi(groupKey) {
+            if (!groupKey || !root || !regionList) {
+                return Promise.resolve(false);
+            }
+
+            var apiBase = root.getAttribute('data-regions-api-url') || '';
+            if (!apiBase) {
+                return Promise.resolve(false);
+            }
+
+            var url = new URL(apiBase, window.location.origin);
+            url.searchParams.set('action', 'get');
+            url.searchParams.set('key', groupKey);
+
+            renderLoadingState('Gruppendaten werden nachgeladen...');
+
+            return fetch(url.toString(), { credentials: 'same-origin' })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    var payload = data && typeof data === 'object' && data.payload && typeof data.payload === 'object'
+                        ? data.payload
+                        : null;
+
+                    if (!payload) {
+                        throw new Error('Ungültige API-Antwort');
+                    }
+
+                    state = normalizeState(payload);
+                    dataLoadedFromApi = true;
+
+                    if (groupDescription) {
+                        groupDescription.value = state.description || '';
+                    }
+
+                    syncColorControlsFromState();
+                    syncOptimizeControlsFromState();
+                    renderRegions();
+                    sanitizeRegionKeys();
+                    queueSync({ fit: true, persistPayload: true });
+
+                    if (gatherStats(state).cityCount > 0) {
+                        window.setTimeout(function () {
+                            enableLivePreview();
+                            queueSync({ fit: true });
+                        }, 20);
+                    }
+
+                    return true;
+                })
+                .catch(function (error) {
+                    window.console.error(error);
+                    regionList.innerHTML = '<div class="alert alert-danger" style="margin-bottom:12px">'
+                        + 'Gruppendaten konnten nicht geladen werden. Bitte Seite neu laden.'
+                        + '</div>';
+                    return false;
+                });
         }
 
         function buildPreviewGeoJson(stateData, groupKey, groupName, maxCityFeatures) {
@@ -1293,23 +1436,29 @@
 
         renderMapPlaceholder('Live-Preview startet automatisch, sobald Orte vorhanden sind. So bleibt die Seite auch bei großen Datensätzen sofort bedienbar.');
         syncColorControlsFromState();
+        syncOptimizeControlsFromState();
         bindColorControls();
+        bindOptimizeControls();
         bindEvents();
         renderRegions();
         sanitizeRegionKeys();
         queueSync();
 
-        if (state.regions.length === 0) {
+        if (state.regions.length === 0 && !initialGroupKey) {
             state.regions.push(createEmptyRegion());
             renderRegions();
             queueSync();
         }
 
-        if (gatherStats(state).cityCount > 0) {
+        if (!initialGroupKey && gatherStats(state).cityCount > 0) {
             window.setTimeout(function () {
                 enableLivePreview();
                 queueSync({ fit: true });
             }, 60);
+        }
+
+        if (initialGroupKey && !dataLoadedFromApi) {
+            loadGroupPayloadByApi(initialGroupKey);
         }
     }
 
