@@ -740,10 +740,9 @@
 
     function createBuilder(root) {
         var MAX_PRETTY_GEOJSON_FEATURES = 120;
-        var MAX_BOUNDS_POINTS = 4000;
-        var MAX_PREVIEW_CITY_FEATURES = 280;
+        var MAX_BOUNDS_POINTS = 3000;
+        var MAX_PREVIEW_CITY_FEATURES = 120;
         var MAX_VISIBLE_CITY_ROWS = 180;
-
         var regionList = $('#vm-region-list', root);
         var addRegionButton = $('#vm-add-region', root);
         var payloadInput = $('#vm-group-payload');
@@ -1347,10 +1346,7 @@
                     queueSync({ fit: true, persistPayload: true });
 
                     if (gatherStats(state).cityCount > 0) {
-                        window.setTimeout(function () {
-                            enableLivePreview();
-                            queueSync({ fit: true });
-                        }, 20);
+                        renderMapPlaceholder('Live-Preview ist pausiert. Klicke auf „Live-Preview aktivieren“, um die Karte bei Bedarf zu laden.');
                     }
 
                     return true;
@@ -1447,30 +1443,6 @@
                         },
                     });
 
-                    if (cityLabel) {
-                        var cityCenter = geometryCenter(city.geometry);
-                        if (cityCenter) {
-                            features.push({
-                                type: 'Feature',
-                                geometry: {
-                                    type: 'Point',
-                                    coordinates: cityCenter,
-                                },
-                                properties: {
-                                    level: 'label',
-                                    vm_label: true,
-                                    label_kind: 'city',
-                                    label: cityLabel,
-                                    label_color: '#111827',
-                                    group_key: groupKey,
-                                    group_name: groupName,
-                                    region_key: regionKey,
-                                    region_name: regionName,
-                                },
-                            });
-                        }
-                    }
-
                     flattenGeometryPolygons(city.geometry).forEach(function (polygon) {
                         regionPolygons.push(polygon);
                     });
@@ -1552,6 +1524,21 @@
 
             var groupKey = groupKeyInput ? String(groupKeyInput.value || '') : '';
             var groupName = groupNameInput ? String(groupNameInput.value || '') : '';
+
+            var stats = gatherStats(state);
+            if (statRegions) statRegions.textContent = stats.regionCount + ' Regionen';
+            if (statCities) statCities.textContent = stats.cityCount + ' Stadtflächen';
+            if (statArea) statArea.textContent = stats.areaTotal.toFixed(2) + ' km²';
+
+            if (!mapEnabled) {
+                if (generatedGeoJson) {
+                    generatedGeoJson.value = 'Live-Preview ist pausiert. Aktiviere sie per Klick, um die GeoJSON-Vorschau zu laden.';
+                }
+
+                updatePreview({ type: 'FeatureCollection', features: [] }, false);
+                return;
+            }
+
             var preview = buildPreviewGeoJson(state, groupKey, groupName, MAX_PREVIEW_CITY_FEATURES);
             var geojson = preview.geojson;
 
@@ -1565,11 +1552,6 @@
                     generatedGeoJson.value += '\n\nHinweis: Live-Vorschau gekürzt (' + preview.cityFeatureCount + ' Stadtflächen geladen), um die Oberfläche flüssig zu halten.';
                 }
             }
-
-            var stats = gatherStats(state);
-            if (statRegions) statRegions.textContent = stats.regionCount + ' Regionen';
-            if (statCities) statCities.textContent = stats.cityCount + ' Stadtflächen';
-            if (statArea) statArea.textContent = stats.areaTotal.toFixed(2) + ' km²';
 
             updatePreview(geojson, !!opts.fit);
         }
@@ -1842,13 +1824,13 @@
                     }
 
                     var geometryPointCount = countGeometryPoints(geometry);
-                    var maxPoints = searchItem.isLargeArea ? 14000 : 38000;
+                    var maxPoints = searchItem.isLargeArea ? 6000 : 16000;
                     if (geometryPointCount > maxPoints) {
                         geometry = simplifyGeometryToPointBudget(geometry, maxPoints);
                         geometryPointCount = countGeometryPoints(geometry);
                     }
 
-                    if (geometryPointCount > 90000) {
+                    if (geometryPointCount > 40000) {
                         window.alert('Die ausgewählte Fläche ist selbst nach Reduktion noch zu groß (' + geometryPointCount + ' Punkte). Bitte kleinere Ebene wählen.');
                         return;
                     }
@@ -1885,9 +1867,6 @@
                     region.busy = false;
                     renderRegions();
                     sanitizeRegionKeys();
-                    if (gatherStats(state).cityCount > 0) {
-                        enableLivePreview();
-                    }
                     queueSync({ fit: true });
                 });
         }
@@ -2151,7 +2130,7 @@
             });
         }
 
-        renderMapPlaceholder('Live-Preview startet automatisch, sobald Orte vorhanden sind. So bleibt die Seite auch bei großen Datensätzen sofort bedienbar.');
+        renderMapPlaceholder('Live-Preview ist pausiert. Klicke auf „Live-Preview aktivieren“, um die Karte bei Bedarf zu laden.');
         syncColorControlsFromState();
         syncOptimizeControlsFromState();
         bindColorControls();
@@ -2167,11 +2146,8 @@
             queueSync();
         }
 
-        if (!initialGroupKey && gatherStats(state).cityCount > 0) {
-            window.setTimeout(function () {
-                enableLivePreview();
-                queueSync({ fit: true });
-            }, 60);
+        if (gatherStats(state).cityCount > 0) {
+            renderMapPlaceholder('Live-Preview ist bei größeren Datensätzen pausiert. Klicke auf „Live-Preview aktivieren“, um die Karte bei Bedarf zu laden.');
         }
 
         if (initialGroupKey && !dataLoadedFromApi) {
