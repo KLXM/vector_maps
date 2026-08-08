@@ -10,7 +10,7 @@
  */
 
 import * as esbuild from 'esbuild';
-import { copyFileSync, mkdirSync, existsSync } from 'fs';
+import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -96,6 +96,15 @@ const vendorFiles = [
     ['pmtiles/dist/pmtiles.js',          'pmtiles.js',       true],
 ];
 
+function removeSourceMapReference(file) {
+    const content = readFileSync(file, 'utf8');
+    const cleaned = content.replace(/\n?\/\/[#@]\s*sourceMappingURL=.*?(?:\r?\n|$)/g, '\n');
+
+    if (cleaned !== content) {
+        writeFileSync(file, cleaned);
+    }
+}
+
 async function updateVendor() {
     console.log('\n🔄 Vendor-Assets aktualisieren…\n');
 
@@ -123,6 +132,8 @@ async function updateVendor() {
         } else {
             copyFileSync(src, dest);
         }
+
+        removeSourceMapReference(dest);
 
         console.log(`  ✓ ${srcRel} → assets/maplibre/${destName}`);
     }

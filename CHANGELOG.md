@@ -5,6 +5,12 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.2.1] – 2026-08-08
+
+### Gefixt
+
+- **404-Fehler für `maplibre-gl.js.map`** – der verwaiste Source-Map-Verweis wurde aus dem ausgelieferten MapLibre-Bundle entfernt; der Vendor-Build bereinigt solche Verweise künftig automatisch
+
 ## [1.2.0] – 2026-07-01
 
 ### Hinzugefügt
