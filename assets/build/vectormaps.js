@@ -944,6 +944,30 @@ function vmProxyUrl(url) {
     return window.location.origin + '/?rex_api_vector_maps_proxy=1&target_url=' + encodeURIComponent(url);
 }
 
+/**
+ * Server-seitig mitgegebene Basisstil-Zuordnung für Custom-Themes (Name → liberty|bright|positron).
+ * Wird per boot.php sowohl im Backend (rex.vector_maps_theme_base_styles) als auch im
+ * Frontend (window.VM_THEME_BASE_STYLES) injiziert.
+ * @returns {Record<string, string>}
+ */
+function vmThemeBaseStyleMap() {
+    if (window.rex && window.rex.vector_maps_theme_base_styles) return window.rex.vector_maps_theme_base_styles;
+    if (window.VM_THEME_BASE_STYLES) return window.VM_THEME_BASE_STYLES;
+    return {};
+}
+
+/**
+ * Löst den tatsächlichen Basisstil für einen Style-/Theme-Namen auf,
+ * ohne dafür das Theme-JSON per Fetch laden zu müssen.
+ * @param {string} name
+ * @returns {string}
+ */
+function vmResolveBaseStyle(name) {
+    if (VM_OFM_STYLES.includes(name)) return name;
+    const known = vmThemeBaseStyleMap()[name];
+    return VM_OFM_STYLES.includes(known) ? known : 'liberty';
+}
+
 function vmProxyStyleUrl(nameOrUrl) {
     if (nameOrUrl === 'satellite') return VM_SATELLITE_STYLE;
     if (nameOrUrl.startsWith('http')) return vmProxyUrl(nameOrUrl);
@@ -951,8 +975,8 @@ function vmProxyStyleUrl(nameOrUrl) {
     if (VM_OFM_STYLES.includes(nameOrUrl)) {
         return vmProxyUrl('https://tiles.openfreemap.org/styles/' + nameOrUrl);
     }
-    // Theme-Name (eingebaut oder custom) → liberty als Basis; Farben werden nach Load angewendet
-    return vmProxyUrl('https://tiles.openfreemap.org/styles/liberty');
+    // Theme-Name (eingebaut oder custom) → bekannten Basisstil nutzen statt pauschal Liberty zu laden
+    return vmProxyUrl('https://tiles.openfreemap.org/styles/' + vmResolveBaseStyle(nameOrUrl));
 }
 
 /** Fonts, die OpenFreeMap tatsächlich hostet */
@@ -1830,7 +1854,7 @@ function vmBuildMap(el) {
     vmAttachElementApi(el);
     vmObserveDynamicAttributes(el);
     map._vmEl = el;  // Rueckwaerts-Referenz fuer Theme-Fade-in
-    map._vmBaseStyle = VM_OFM_STYLES.includes(mapStyle) || mapStyle.startsWith('http') ? mapStyle : 'liberty';
+    map._vmBaseStyle = mapStyle.startsWith('http') ? mapStyle : vmResolveBaseStyle(mapStyle);
     vmRegisterMap(map);
 
     // Karte erst einblenden wenn Theme angewendet wurde (verhindert Flash of Unstyled Map)

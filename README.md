@@ -30,6 +30,27 @@ Interaktive Vektorkarten für REDAXO – datenschutzkonform, ohne API-Key, volls
 
 ---
 
+## Kartenstil & Theme fest einstellen (Frontend & Backend)
+
+Die Stil-/Theme-Buttons in den Demo-Seiten sind nur eine Live-Vorschau im Browser und speichern nichts. Um z. B. dauerhaft **Positron** als Basisstil mit dem Theme **dark** zu verwenden, wird das an der jeweiligen Einbindungsstelle per Attribut bzw. Feld festgelegt:
+
+| Kontext | Wie einstellen |
+|---|---|
+| `<vectormap>`-Tag (Frontend: Template, Modul, Artikel) | `map-style="positron" theme="dark"` als HTML-Attribute direkt am Tag |
+| Builder-Element „Vector Map" | Im Element-Tab **Karte** die Felder **Kartenstil** und **Theme** je Slice auswählen |
+| YForm-Feld `vector_map_location` | 4. und 5. Schema-Parameter: `value\|vector_map_location\|name\|label\|positron\|dark\|1` |
+| Allgemeiner Geodaten-Picker (`data-vector-picker`) | `data-vector-picker-style="positron" data-vector-picker-theme="dark"` bzw. `PickerWidget::factory(...)->setMapStyle('positron')->setTheme('dark')` |
+
+Frontend-Beispiel:
+
+```html
+<vectormap lat="51.43" lng="6.77" zoom="13" map-style="positron" theme="dark" height="400px"></vectormap>
+```
+
+`map-style` bestimmt den Basis-Kartenstil (`liberty`, `bright`, `positron`, `satellite` oder ein eigener Theme-Name als Basisstil), `theme` legt zusätzlich eine Farbpalette (`dark`, `redaxo`, `bright`, `warm`, `mono` oder ein selbst im Theme-Editor angelegtes Theme) über diesem Basisstil fest. `satellite` ist ein Rasterbild und unterstützt daher kein Theme.
+
+---
+
 ## Installation
 
 Über den REDAXO-Installer oder manuell:

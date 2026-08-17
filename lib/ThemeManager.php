@@ -77,6 +77,25 @@ class ThemeManager
     }
 
     /**
+     * Schlanke Zuordnung Theme-Name → Basisstil (ohne Farbwerte).
+     * Wird dem Frontend/Backend als JS-Konstante mitgegeben, damit
+     * ein Custom-Theme-Name als `map-style` sofort mit dem korrekten
+     * Basisstil geladen werden kann statt zunächst Liberty zu laden
+     * und nach dem asynchronen Theme-Fetch per setStyle() zu korrigieren.
+     *
+     * @return array<string, string>
+     */
+    public static function getBaseStyleMap(): array
+    {
+        $map = [];
+        foreach (self::getCustomThemes() as $name => $theme) {
+            $baseStyle = $theme['base_style'] ?? 'liberty';
+            $map[$name] = is_string($baseStyle) && in_array($baseStyle, self::BASE_STYLES, true) ? $baseStyle : 'liberty';
+        }
+        return $map;
+    }
+
+    /**
      * Liest ein einzelnes Theme aus dem Verzeichnis.
      * @return array<string, mixed>|null
      */

@@ -5,6 +5,12 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.2.2] – 2026-08-17
+
+### Gefixt
+
+- **Liberty-Zwischenladung bei Custom-Theme als `map-style`** – wird ein eigenes Theme direkt als `map-style` verwendet (z. B. `map-style="klxm"`), lud die Karte den Basisstil bisher immer zunächst als `liberty` und korrigierte erst nach dem asynchronen Theme-Fetch per `setStyle()` auf den tatsächlich gespeicherten Basisstil (`bright`/`positron`). Der Basisstil je Custom-Theme wird jetzt serverseitig als schlanke Zuordnung (`ThemeManager::getBaseStyleMap()`) an Backend und Frontend mitgegeben, sodass der richtige Basisstil direkt beim ersten Laden verwendet wird – ohne Zwischenschritt und ohne unnötigen zusätzlichen Tile-Request
+
 ## [1.2.1] – 2026-08-08
 
 ### Gefixt

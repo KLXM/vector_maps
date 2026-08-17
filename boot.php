@@ -79,6 +79,9 @@ if (rex::isBackend() && rex::getUser()) {
         'theme_vector_only' => \rex_i18n::msg('vector_maps_picker_theme_vector_only'),
     ]);
 
+    // Basisstil je Custom-Theme (liberty/bright/positron) – vermeidet Liberty-Zwischenladung bei map-style=<theme-name>
+    rex_view::setJsProperty('vector_maps_theme_base_styles', ThemeManager::getBaseStyleMap());
+
     // Assets im Backend laden (für Picker etc.)
     $addon = rex_addon::get('vector_maps');
     // filemtime-Cache-Busting: Browser lädt neue Version sobald Datei geändert wird
@@ -135,7 +138,11 @@ if (!rex::isBackend()) {
 "
                  . '<link rel="stylesheet" href="' . $vmFe('build/vectormaps.css') . "\">
 ";
-            $js  = '<script defer src="' . $vmFe('maplibre/maplibre-gl.js') . "\"></script>
+            // Basisstil je Custom-Theme (liberty/bright/positron) – vermeidet Liberty-Zwischenladung bei map-style=<theme-name>
+            $themeBaseStyles = json_encode(ThemeManager::getBaseStyleMap(), JSON_UNESCAPED_UNICODE);
+            $js  = '<script>window.VM_THEME_BASE_STYLES = ' . $themeBaseStyles . ";</script>
+"
+                 . '<script defer src="' . $vmFe('maplibre/maplibre-gl.js') . "\"></script>
 "
                  . '<script defer src="' . $vmFe('build/vectormaps.js') . "\"></script>
 ";
