@@ -1,9 +1,9 @@
 name: Release & Publish
 
+# ZIP und MyREDAXO-Upload laufen beim Veröffentlichen eines GitHub-Releases –
+# unabhängig davon, ob der Tag „1.2.5“ oder „v1.2.5“ heißt.
+# Manuell (workflow_dispatch) lässt sich das ZIP für ein bestehendes Release nachträglich anhängen.
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   release:
     types:
       - published
@@ -18,8 +18,8 @@ on:
           - release
           - redaxo_publish
       version:
-        description: 'Version (nur für redaxo_publish, z.B. v1.1.1)'
-        required: false
+        description: 'Tag des Releases, z. B. 1.2.5'
+        required: true
         default: ''
 
 permissions:
@@ -28,12 +28,16 @@ permissions:
 jobs:
   release:
     name: Build & Release ZIP
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.job == 'release')
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.job == 'release')
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - name: Node.js einrichten
         uses: actions/setup-node@v4
@@ -50,7 +54,6 @@ jobs:
 
       - name: Release-ZIP erstellen
         run: |
-          TAG=${GITHUB_REF_NAME}
           ZIP_NAME="vector_maps_${TAG}.zip"
 
           zip -r "$ZIP_NAME" . \
@@ -64,11 +67,11 @@ jobs:
 
           echo "ZIP_NAME=$ZIP_NAME" >> "$GITHUB_ENV"
 
-      - name: GitHub Release erstellen
+      - name: ZIP an das Release anhängen
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
           files: ${{ env.ZIP_NAME }}
-          generate_release_notes: true
 
   redaxo_publish:
     name: Publish to REDAXO.org
