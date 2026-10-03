@@ -663,7 +663,7 @@ class VectorMapPicker {
                 map.flyTo({ center: [8.682127, 50.110924], zoom: 16, pitch: 60, bearing: 60, duration: 6000 });
                 new maplibregl.Marker({color: "#0000ff"})
                     .setLngLat([8.682127, 50.110924])
-                    .setPopup(new maplibregl.Popup().setHTML("<h5>Mainhattan</h5><p>Vector Maps via REDAXO-Proxy!</p>"))
+                    .setPopup(new maplibregl.Popup({ focusAfterOpen: false }).setHTML("<h5>Mainhattan</h5><p>Vector Maps via REDAXO-Proxy!</p>"))
                     .addTo(map)
                     .togglePopup();
             }, 1000);
@@ -2073,6 +2073,9 @@ function vmGetPopupFocusMode(el, fallback = 'restore') {
  * @param {HTMLElement|null} el
  */
 function vmBindPopupA11y(marker, popup, el = null) {
+    // Hinweis: Alle Popups werden mit focusAfterOpen: false erzeugt. MapLibre würde sonst den Fokus
+    // auf den Schließen-Button setzen – bei automatisch geöffneten Popups (z. B. route-to) scrollt
+    // der Browser dann beim Seitenaufruf zur Karte. Den Fokus für Tastaturnutzer setzt diese Funktion.
     if (!marker || !popup) return;
 
     const triggerEl = marker.getElement && marker.getElement();
@@ -2191,7 +2194,7 @@ function vmAddMarkers(el, map) {
             const marker = new maplibregl.Marker(markerOpts)
                 .setLngLat([parseFloat(m.lng), parseFloat(m.lat)]);
             if (m.popup || m.label) {
-                const popup = new maplibregl.Popup({ offset: 25 }).setHTML(m.popup || m.label);
+                const popup = new maplibregl.Popup({ focusAfterOpen: false, offset: 25 }).setHTML(m.popup || m.label);
                 marker.setPopup(popup);
                 vmBindPopupA11y(marker, popup, el);
             }
@@ -2264,7 +2267,7 @@ function vmAddClusteredMarkers(el, map, markers) {
     map.on('click', srcId + '-p', (e) => {
         const { popup } = e.features[0].properties;
         if (!popup) return;
-        const featurePopup = new maplibregl.Popup()
+        const featurePopup = new maplibregl.Popup({ focusAfterOpen: false })
             .setLngLat(e.features[0].geometry.coordinates.slice())
             .setHTML(popup)
             .addTo(map);
@@ -2480,9 +2483,9 @@ async function vmDrawRoute(el, map, fromStr, toStr, mode) {
 
         // Start- und Ziel-Marker (getrackt für vmClearRoute)
         const fromMarker = new maplibregl.Marker({ color: '#27ae60' }).setLngLat([fromLng, fromLat])
-            .setPopup(new maplibregl.Popup().setText('Start: ' + fromLabel)).addTo(map);
+            .setPopup(new maplibregl.Popup({ focusAfterOpen: false }).setText('Start: ' + fromLabel)).addTo(map);
         const toMarker = new maplibregl.Marker({ color: '#e74c3c' }).setLngLat([toLng, toLat])
-            .setPopup(new maplibregl.Popup().setText('Ziel: ' + toLabel)).addTo(map);
+            .setPopup(new maplibregl.Popup({ focusAfterOpen: false }).setText('Ziel: ' + toLabel)).addTo(map);
         vmBindPopupA11y(fromMarker, fromMarker.getPopup(), el);
         vmBindPopupA11y(toMarker, toMarker.getPopup(), el);
         el._vmRouteMarkers = [fromMarker, toMarker];
@@ -2729,7 +2732,7 @@ function vmAddRoutePanel(el, map) {
                 const destZoom = el.hasAttribute('zoom') ? (parseFloat(el.getAttribute('zoom')) || 14) : 14;
                 map.flyTo({ center: [lng, lat], zoom: destZoom, duration: 0 });
                 const popupHtml = customPopup || ('<strong>' + label + '</strong>');
-                const destPopup = new maplibregl.Popup({ offset: 25, closeOnClick: false })
+                const destPopup = new maplibregl.Popup({ focusAfterOpen: false, offset: 25, closeOnClick: false })
                     .setHTML(popupHtml);
                 const destMarker = new maplibregl.Marker({ color: '#e74c3c' })
                     .setLngLat([lng, lat])
@@ -2772,7 +2775,7 @@ function vmAddLocateButton(el, map) {
                 map.flyTo({ center: [longitude, latitude], zoom: 15, duration: 900 });
                 const userMarker = new maplibregl.Marker({ color: '#2b7095' })
                     .setLngLat([longitude, latitude])
-                    .setPopup(new maplibregl.Popup().setText('Ihr Standort'))
+                    .setPopup(new maplibregl.Popup({ focusAfterOpen: false }).setText('Ihr Standort'))
                     .addTo(map);
                 vmBindPopupA11y(userMarker, userMarker.getPopup(), el);
             },
@@ -2918,7 +2921,7 @@ async function vmFetchNearby(el, map, filter, radius, labelAttr, lat, lng) {
 
             const m = new maplibregl.Marker({ color: '#2b7095', scale: 0.85 })
                 .setLngLat([eLon, eLat])
-                .setPopup(new maplibregl.Popup({ offset: 22 }).setHTML(popupHtml))
+                .setPopup(new maplibregl.Popup({ focusAfterOpen: false, offset: 22 }).setHTML(popupHtml))
                 .addTo(map);
             vmBindPopupA11y(m, m.getPopup(), el);
 
@@ -2942,7 +2945,7 @@ async function vmFetchNearby(el, map, filter, radius, labelAttr, lat, lng) {
         // Standort-Marker (Kreuz)
         const locMarker = new maplibregl.Marker({ color: '#e74c3c' })
             .setLngLat([lng, lat])
-            .setPopup(new maplibregl.Popup().setText('Suchzentrum'))
+            .setPopup(new maplibregl.Popup({ focusAfterOpen: false }).setText('Suchzentrum'))
             .addTo(map);
         vmBindPopupA11y(locMarker, locMarker.getPopup(), el);
         if (!el._vmNearbyMarkers) el._vmNearbyMarkers = [];
@@ -3162,7 +3165,7 @@ function vmRenderGeoJson(el, map, data) {
             const m = new maplibregl.Marker(markerOpts).setLngLat([coord[0], coord[1]]);
             const popupHtml = buildPopup();
             if (popupHtml) {
-                const popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml);
+                const popup = new maplibregl.Popup({ focusAfterOpen: false, offset: 25 }).setHTML(popupHtml);
                 m.setPopup(popup);
                 vmBindPopupA11y(m, popup, el);
             }
@@ -3246,7 +3249,7 @@ function vmRenderGeoJson(el, map, data) {
                 if (rows.length) content = `<table style="font-size:13px;border-collapse:collapse">${rows.join('')}</table>`;
             }
             if (!content) return;
-            const featurePopup = new maplibregl.Popup()
+            const featurePopup = new maplibregl.Popup({ focusAfterOpen: false })
                 .setLngLat(e.lngLat)
                 .setHTML(content)
                 .addTo(map);
@@ -3476,7 +3479,7 @@ function vmSetupCsDemo(el, map) {
         },
     });
 
-    const popup = new maplibregl.Popup({ closeButton: false, maxWidth: '260px' });
+    const popup = new maplibregl.Popup({ focusAfterOpen: false, closeButton: false, maxWidth: '260px' });
     map.on('click', 'vm-cs-dots', (e) => {
         const p = e.features[0].properties;
         const parts = [];

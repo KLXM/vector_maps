@@ -5,6 +5,12 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.2.4] – 2026-10-03
+
+### Gefixt
+
+- **Seite springt beim Laden zur Karte:** MapLibre setzt beim Öffnen eines Popups standardmäßig den Fokus auf dessen Schließen-Button (`focusAfterOpen: true`). Bei automatisch geöffneten Popups – etwa dem Ziel-Popup bei `route-to` – hat der Browser dadurch beim Seitenaufruf zur Karte gescrollt. Alle Popups werden jetzt mit `focusAfterOpen: false` erzeugt; den Fokus für Tastaturnutzer setzt wie bisher `vmBindPopupA11y()` bzw. `vmBindFeaturePopupA11y()`
+
 ## [1.2.3] – 2026-10-03
 
 ### Gefixt
