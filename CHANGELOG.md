@@ -10,6 +10,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 ### Geändert
 
 - **Release-Workflow:** Das Release-ZIP wird jetzt beim Veröffentlichen eines GitHub-Releases gebaut und angehängt – auch bei Tags ohne „v“ (bisher nur bei Tag-Pushes `v*.*.*`, daher fehlte das ZIP bei 1.2.3 und 1.2.4). Fehlende ZIPs lassen sich per „Run workflow“ (Job `release`, Tag angeben) nachträglich anhängen.
+- **Release-ZIP ohne Neubau:** Der ZIP-Job packt den Stand des Release-Tags, statt die Assets neu zu bauen (`npm ci` scheiterte am nicht eingecheckten `package-lock.json`; ein Neubau hätte zudem neuere Vendor-Versionen ins ZIP gebracht als im Installer).
 
 ## [1.2.4] – 2026-10-03
 
