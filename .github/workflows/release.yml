@@ -39,19 +39,8 @@ jobs:
         with:
           ref: ${{ env.TAG }}
 
-      - name: Node.js einrichten
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Abhängigkeiten installieren
-        working-directory: build
-        run: npm ci
-
-      - name: Assets bauen (minifizieren + Vendor-Update)
-        working-directory: build
-        run: npm run build:all
-
+      # Kein Neubau: die minifizierten Assets liegen im Repo (build/build.mjs vor dem Release).
+      # So ist das ZIP identisch mit dem, was der REDAXO-Installer ausliefert.
       - name: Release-ZIP erstellen
         run: |
           ZIP_NAME="vector_maps_${TAG}.zip"
