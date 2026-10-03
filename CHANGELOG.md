@@ -5,7 +5,7 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
-## [Unreleased]
+## [1.2.3] – 2026-10-03
 
 ### Gefixt
 
