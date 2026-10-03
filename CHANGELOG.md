@@ -5,6 +5,12 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.2.5] – 2026-10-03
+
+### Geändert
+
+- **Release-Workflow:** Das Release-ZIP wird jetzt beim Veröffentlichen eines GitHub-Releases gebaut und angehängt – auch bei Tags ohne „v“ (bisher nur bei Tag-Pushes `v*.*.*`, daher fehlte das ZIP bei 1.2.3 und 1.2.4). Fehlende ZIPs lassen sich per „Run workflow“ (Job `release`, Tag angeben) nachträglich anhängen.
+
 ## [1.2.4] – 2026-10-03
 
 ### Gefixt
