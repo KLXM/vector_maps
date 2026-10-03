@@ -2725,7 +2725,9 @@ function vmAddRoutePanel(el, map) {
         showDestination = async () => {
             try {
                 const [lat, lng, label] = await vmResolveLocation(initTo);
-                map.flyTo({ center: [lng, lat], zoom: 14, duration: 0 });
+                // Ein explizit gesetztes zoom-Attribut respektieren (Pitch/Bearing bleiben erhalten)
+                const destZoom = el.hasAttribute('zoom') ? (parseFloat(el.getAttribute('zoom')) || 14) : 14;
+                map.flyTo({ center: [lng, lat], zoom: destZoom, duration: 0 });
                 const popupHtml = customPopup || ('<strong>' + label + '</strong>');
                 const destPopup = new maplibregl.Popup({ offset: 25, closeOnClick: false })
                     .setHTML(popupHtml);
@@ -3602,6 +3604,11 @@ if (!customElements.get('vector-map')) {
     customElements.define('vector-map', VectorMapElement);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// Auch wenn das Script erst nach dem Seitenaufbau geladen wird (Lazy-Loading, PJAX), initialisieren
+if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", () => {
+        new VectorMapPicker();
+    });
+} else {
     new VectorMapPicker();
-});
+}
