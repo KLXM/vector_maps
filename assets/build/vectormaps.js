@@ -596,13 +596,13 @@ class VectorMapPicker {
             'id': 'vm-picker-3d-buildings',
             'source': srcName,
             'source-layer': 'building',
-            'filter': ['==', 'extrude', 'true'],
+            'filter': ['!=', ['get', 'hide_3d'], true],
             'type': 'fill-extrusion',
             'minzoom': 15,
             'paint': {
                 'fill-extrusion-color': '#aaa',
-                'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'height'], 0]],
-                'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'min_height'], 0]],
+                'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 0]],
+                'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]],
                 'fill-extrusion-opacity': 0.6
             }
         });
@@ -640,13 +640,13 @@ class VectorMapPicker {
                 'id': '3d-buildings',
                 'source': srcName,
                 'source-layer': 'building',
-                'filter': ['==', 'extrude', 'true'],
+                'filter': ['!=', ['get', 'hide_3d'], true],
                 'type': 'fill-extrusion',
                 'minzoom': 15,
                 'paint': {
                     'fill-extrusion-color': '#aaa',
-                    'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'height'], 0]],
-                    'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'min_height'], 0]],
+                    'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 0]],
+                    'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]],
                     'fill-extrusion-opacity': .6
                 }
             });
@@ -2009,14 +2009,14 @@ function vmAdd3dBuildings(map) {
         id:            'vm-el-3d',
         source:        srcName,
         'source-layer': 'building',
-        filter:        ['==', 'extrude', 'true'],
+        filter:        ['!=', ['get', 'hide_3d'], true],
         type:          'fill-extrusion',
         minzoom:       15,
         paint: {
             'fill-extrusion-color':   '#aaa',
-            'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'height'], 0]],
-            'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'min_height'], 0]],
-            'fill-extrusion-opacity': 0.6,
+            'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 0]],
+            'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]],
+            'fill-extrusion-opacity': 0.85,
         },
     });
 }
@@ -2725,7 +2725,9 @@ function vmAddRoutePanel(el, map) {
         showDestination = async () => {
             try {
                 const [lat, lng, label] = await vmResolveLocation(initTo);
-                map.flyTo({ center: [lng, lat], zoom: 14, duration: 0 });
+                // Ein explizit gesetztes zoom-Attribut respektieren (Pitch/Bearing bleiben erhalten)
+                const destZoom = el.hasAttribute('zoom') ? (parseFloat(el.getAttribute('zoom')) || 14) : 14;
+                map.flyTo({ center: [lng, lat], zoom: destZoom, duration: 0 });
                 const popupHtml = customPopup || ('<strong>' + label + '</strong>');
                 const destPopup = new maplibregl.Popup({ offset: 25, closeOnClick: false })
                     .setHTML(popupHtml);
@@ -3365,13 +3367,13 @@ function vmStartBerlinOverfly(map) {
             id:             'vm-overfly-3d',
             source:         srcName,
             'source-layer': 'building',
-            filter:         ['==', 'extrude', 'true'],
+            filter:         ['!=', ['get', 'hide_3d'], true],
             type:           'fill-extrusion',
             minzoom:        14,
             paint: {
                 'fill-extrusion-color':   '#a8b4c0',
-                'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['coalesce', ['get', 'height'], 0]],
-                'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['coalesce', ['get', 'min_height'], 0]],
+                'fill-extrusion-height':  ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['coalesce', ['get', 'render_height'], ['get', 'height'], 0]],
+                'fill-extrusion-base':    ['interpolate', ['linear'], ['zoom'], 14, 0, 14.5, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]],
                 'fill-extrusion-opacity': 0.8,
             },
         });
@@ -3602,6 +3604,11 @@ if (!customElements.get('vector-map')) {
     customElements.define('vector-map', VectorMapElement);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// Auch wenn das Script erst nach dem Seitenaufbau geladen wird (Lazy-Loading, PJAX), initialisieren
+if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", () => {
+        new VectorMapPicker();
+    });
+} else {
     new VectorMapPicker();
-});
+}

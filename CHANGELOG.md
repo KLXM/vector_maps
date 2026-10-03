@@ -5,6 +5,15 @@ Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/), Ver
 
 ---
 
+## [1.2.3] – 2026-10-03
+
+### Gefixt
+
+- **PHP 8.5:** `curl_close()` im Proxy entfernt – die Funktion hat seit PHP 8.0 keine Wirkung und ist ab PHP 8.5 als veraltet markiert (Deprecation im Systemlog bei jedem Kachel-Request)
+- **Nachgeladenes Script initialisiert:** `vectormaps.js` startete nur bei `DOMContentLoaded`. Wird das Script später geladen (Lazy-Loading erst bei sichtbarer Karte, PJAX), blieben `<vectormap>`-Elemente leer. Jetzt wird sofort initialisiert, wenn das DOM bereits geladen ist
+- **3D-Gebäude wurden nicht angezeigt:** Die Extrusions-Ebenen filterten auf `extrude == "true"` und lasen `height`/`min_height` – diese Attribute gibt es in den OpenFreeMap-Kacheln (OpenMapTiles-Schema) nicht, dort heißen sie `render_height`/`render_min_height`. Filter jetzt auf `hide_3d != true`, Höhe aus `render_height` mit Rückfall auf `height`; Deckkraft der Element-Ebene 0.6 → 0.85. Die Gebäudefarbe folgt wie bisher dem aktiven Theme
+- **`zoom` bei `route-to` ohne `route-from`:** Nach dem Geokodieren des Ziels sprang die Karte fest auf Zoom 14 und ignorierte ein gesetztes `zoom`-Attribut (z. B. für 3D-Gebäude bei Zoom 16). Ein explizites `zoom` wird jetzt respektiert, Pitch und Bearing bleiben erhalten
+
 ## [1.2.2] – 2026-08-17
 
 ### Gefixt

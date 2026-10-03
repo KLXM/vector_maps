@@ -217,7 +217,8 @@ class Proxy
         $content = curl_exec($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $rawContentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-        curl_close($ch);
+        // curl_close() hat seit PHP 8.0 keine Wirkung und ist ab PHP 8.5 deprecated – Handle wird automatisch freigegeben
+        unset($ch);
 
         if ($httpCode !== 200 || false === $content) {
             $status = ($httpCode >= 400 && $httpCode <= 599) ? $httpCode : 502;
